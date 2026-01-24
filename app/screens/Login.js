@@ -1,10 +1,9 @@
-import { StyleSheet, View } from 'react-native';
-import Login from './app/screens/Login';
+import { View, Text, StyleSheet } from 'react-native';
 
-export default function App() {
+export default function Login() {
   return (
     <View style={styles.container}>
-      <Login />
+      <Text style={styles.title}>Login</Text>
     </View>
   );
 }
@@ -12,9 +11,9 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#09f',
     alignItems: 'center',
     justifyContent: 'center',
+    fontSize: 32,
+    fontWeight: 'bold',
   },
 });
-
