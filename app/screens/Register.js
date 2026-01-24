@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, Pressable, ImageBackground, TextInput } from 'react-native';
 import { useState } from 'react';
 
-export default function Login({ navigation }) {
+export default function Register({ navigation }) {
+  const [usuario, setUsuario] = useState('');
   const [email, setEmail] = useState('');
   const [contraseña, setContraseña] = useState('');
 
@@ -14,7 +15,15 @@ export default function Login({ navigation }) {
         <View style={styles.formContainer}>
           <Text style={styles.title}>мумєηυ</Text>
 
-          <Text style={styles.subtitle1}>𝓘𝓷𝓲𝓬𝓲𝓪𝓻 𝓢𝓮𝓼𝓲𝓸𝓷:</Text>
+          <Text style={styles.subtitle1}>𝓡𝓮𝓰𝓲𝓼𝓽𝓻𝓸:</Text>
+
+          <Text style={styles.subtitle}>𝓤𝓼𝓾𝓪𝓻𝓲𝓸:</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Usuario"
+            value={usuario}
+            onChangeText={setUsuario}
+          />
 
           <Text style={styles.subtitle}>𝒞𝑜𝓇𝓇𝑒𝑜 𝐸𝓁𝑒𝒸𝓉𝓇ó𝓃𝒾𝒸𝑜:</Text>
           <TextInput
@@ -41,13 +50,13 @@ export default function Login({ navigation }) {
               pressed && styles.pressed
             ]}
           >
-            <Text style={styles.buttonText}>Iniciar sesión</Text>
+            <Text style={styles.buttonText}>Registrarse</Text>
           </Pressable>
 
           <View style={styles.registerContainer}>
-            <Text style={styles.subtitle2}>No tienes cuenta, </Text>
-            <Pressable onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.registerLink}>regístrate aquí.</Text>
+            <Text style={styles.subtitle2}>Ya tienes cuenta, </Text>
+            <Pressable onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.registerLink}>inicia sesión aquí.</Text>
             </Pressable>
           </View>
         </View>
