@@ -5,6 +5,14 @@ export default function Login({ navigation }) {
   const [email, setEmail] = useState('');
   const [contraseña, setContraseña] = useState('');
 
+  const handleLogin = () => {
+    if (email.trim() !== '' && contraseña.trim() !== '') {
+      navigation.navigate('Home');
+    } else {
+      alert('Por favor completa todos los campos');
+    }
+  };
+
   return (
     <ImageBackground
       source={require('../assets/fondo.png')}
@@ -34,7 +42,7 @@ export default function Login({ navigation }) {
           />
 
           <Pressable
-            onPress={() => console.log('click')}
+            onPress={handleLogin}
             style={({ hovered, pressed }) => [
               styles.button,
               hovered && styles.hover,
