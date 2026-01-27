@@ -6,6 +6,14 @@ export default function Register({ navigation }) {
   const [email, setEmail] = useState('');
   const [contraseña, setContraseña] = useState('');
 
+  const handleRegister = () => {
+    if (usuario.trim() !== '' && email.trim() !== '' && contraseña.trim() !== '') {
+      navigation.navigate('Home');
+    } else {
+      alert('Por favor completa todos los campos');
+    }
+  };
+
   return (
     <ImageBackground
       source={require('../assets/fondo.png')}
@@ -43,7 +51,7 @@ export default function Register({ navigation }) {
           />
 
           <Pressable
-            onPress={() => console.log('click')}
+            onPress={handleRegister}
             style={({ hovered, pressed }) => [
               styles.button,
               hovered && styles.hover,
