@@ -5,6 +5,13 @@ export default function Home({ navigation }) {
     const handleMenu = () => {
     navigation.navigate('Menu');
   };
+  const handleLista = () => {
+    navigation.navigate('Lista');
+  };
+  const handleAlmacen = () => {
+    navigation.navigate('Almacen');
+  };
+
   
   return (
     <View style={styles.container}>
@@ -25,47 +32,34 @@ export default function Home({ navigation }) {
             pressed && styles.cardPressed
           ]}
         >
-          <Text style={styles.cardTitle}>Ver Menú</Text>
-          <Text style={styles.cardText}>Explora los platos disponibles</Text>
+          <Text style={styles.cardTitle}>Ver MyMenu</Text>
+          <Text style={styles.cardText}>Explora los platos que tenemos en nuestra carta y hazlos segun el nivel.</Text>
         </Pressable>
 
         
         <Pressable
+          onPress={handleLista}
           style={({ hovered, pressed }) => [
             styles.card,
             hovered && styles.cardHover,
             pressed && styles.cardPressed
           ]}
-          onPress={() => console.log('Ir a pedidos')}
         >
-          <Text style={styles.cardTitle}>Mi lista de la compra</Text>
-          <Text style={styles.cardText}>Revisa lo que te falta por comprar</Text>
+          <Text style={styles.cardTitle}>My lista de la compra</Text>
+          <Text style={styles.cardText}>Revisa lo que te falta por comprar y haz tu propia lista de la compra con solo un botón.</Text>
         </Pressable>
 
         
         <Pressable
+          onPress={handleAlmacen}
           style={({ hovered, pressed }) => [
             styles.card,
             hovered && styles.cardHover,
             pressed && styles.cardPressed
           ]}
-          onPress={() => console.log('Ir a pedidos')}
         >
-          <Text style={styles.cardTitle}>Almacén</Text>
-          <Text style={styles.cardText}>Revisa lo que tienes en la nevera, en el arcon y en tu despensa</Text>
-        </Pressable>
-
-        
-        <Pressable
-          style={({ hovered, pressed }) => [
-            styles.card,
-            hovered && styles.cardHover,
-            pressed && styles.cardPressed
-          ]}
-          onPress={() => console.log('Ir a configuración')}
-        >
-          <Text style={styles.cardTitle}>Configuración</Text>
-          <Text style={styles.cardText}>Ajusta tu experiencia</Text>
+          <Text style={styles.cardTitle}>MyAlmacén</Text>
+          <Text style={styles.cardText}>Revisa lo que tienes en la nevera, en el arcon y en tu despensa. Vamos a aprovecharlo antes de que se pongan malos.</Text>
         </Pressable>
 
       </ScrollView>
@@ -80,13 +74,13 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    backgroundColor: 'rgba(48, 163, 58, 0.85)',
+    backgroundColor: '#2f695a',
     paddingVertical: 20,
     paddingHorizontal: 20,
   },
 
   headerTitle: {
-    color: '#22222',
+    color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',

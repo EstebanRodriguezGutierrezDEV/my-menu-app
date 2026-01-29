@@ -83,10 +83,10 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(48, 163, 58, 0.85)',
+    backgroundColor: '#2f695a',
     padding: 30,
     borderRadius: 20,
-    shadowColor: '#1df700ff',
+    shadowColor: '#2f695a',
     shadowOffset: {
       width: 0,
       height: 10,
@@ -100,6 +100,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: '#fff',
   },
 
   subtitle1: {
@@ -117,19 +118,19 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     color: 'white',
     fontFamily: 'Arial',
+    fontWeight: 'bold',
   },
 
   subtitle2: {
     fontSize: 16,
     color: 'white',
-    fontFamily: 'Arial',
+    fontWeight: 'bold',
   },
 
   registerContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 20,
-    alignSelf: 'center',
   },
 
   registerLink: {
@@ -137,13 +138,14 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontSize: 16,
     fontFamily: 'Arial',
+    fontWeight: 'bold',
   },
 
   input: {
     width: '100%',
     height: 40,
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: '#fff',
     borderRadius: 5,
     padding: 10,
     marginBottom: 15,

@@ -126,12 +126,14 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     color: 'white',
     fontFamily: 'Arial',
+    fontWeight: 'bold',
   },
 
   subtitle2: {
     fontSize: 16,
     color: 'white',
     fontFamily: 'Arial',
+    fontWeight: 'bold',
   },
 
   registerContainer: {
@@ -146,6 +148,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontSize: 16,
     fontFamily: 'Arial',
+    fontWeight: 'bold',
   },
 
   input: {

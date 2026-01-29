@@ -99,6 +99,208 @@ export default function Menu({ navigation }) {
             <Text style={styles.addButtonText}>Añadir</Text>
           </Pressable>
         </Pressable>
+
+        <Pressable
+          style={({ hovered, pressed }) => [
+            styles.productCard,
+            hovered && styles.cardHover,
+            pressed && styles.cardPressed,
+          ]}
+        >
+          <View style={styles.imageContainer}>
+            <Image
+              source={require("../assets/platos/Albondigas.png")}
+              style={styles.productImage}
+            />
+          </View>
+
+          <Text style={styles.productTitle}>Albondigas</Text>
+
+          <Text style={styles.productIngredients}>
+            Albondigas, salsa de tomate, ajo, perejil
+          </Text>
+
+          <Pressable style={styles.addButton}>
+            <Text style={styles.addButtonText}>Añadir</Text>
+          </Pressable>
+        </Pressable>
+
+        <Pressable
+          style={({ hovered, pressed }) => [
+            styles.productCard,
+            hovered && styles.cardHover,
+            pressed && styles.cardPressed,
+          ]}
+        >
+          <View style={styles.imageContainer}>
+            <Image
+              source={require("../assets/platos/CocidoMadrileño.png")}
+              style={styles.productImage}
+            />
+          </View>
+
+          <Text style={styles.productTitle}>Cocido Madrileño</Text>
+
+          <Text style={styles.productIngredients}>
+            Garbanzos, chorizo, morcilla, ternera, patatas, zanahoria, pimiento, ajo, perejil, hueso de jamón, hueso de caña 
+          </Text>
+
+          <Pressable style={styles.addButton}>
+            <Text style={styles.addButtonText}>Añadir</Text>
+          </Pressable>
+        </Pressable>
+
+        
+        <Pressable
+          style={({ hovered, pressed }) => [
+            styles.productCard,
+            hovered && styles.cardHover,
+            pressed && styles.cardPressed,
+          ]}
+        >
+          <View style={styles.imageContainer}>
+            <Image
+              source={require("../assets/platos/Tortelini.png")}
+              style={styles.productImage}
+            />
+          </View>
+
+          <Text style={styles.productTitle}>Tortelini</Text>
+
+          <Text style={styles.productIngredients}>
+            Pasta fresca, espinacas, queso, sal, pimienta
+          </Text>
+
+          <Pressable style={styles.addButton}>
+            <Text style={styles.addButtonText}>Añadir</Text>
+          </Pressable>
+        </Pressable>
+
+        <Pressable
+          style={({ hovered, pressed }) => [
+            styles.productCard,
+            hovered && styles.cardHover,
+            pressed && styles.cardPressed,
+          ]}
+        >
+          <View style={styles.imageContainer}>
+            <Image
+              source={require("../assets/platos/Hamburguesa.png")}
+              style={styles.productImage}
+            />
+          </View>
+
+          <Text style={styles.productTitle}>Hamburguesa</Text>
+
+          <Text style={styles.productIngredients}>
+            Pan, carne, lechuga, pepinillos, tomate, queso, salsa de queso
+          </Text>
+
+          <Pressable style={styles.addButton}>
+            <Text style={styles.addButtonText}>Añadir</Text>
+          </Pressable>
+        </Pressable>
+
+        <Pressable
+          style={({ hovered, pressed }) => [
+            styles.productCard,
+            hovered && styles.cardHover,
+            pressed && styles.cardPressed,
+          ]}
+        >
+          <View style={styles.imageContainer}>
+            <Image
+              source={require("../assets/platos/CafeHelado.png")}
+              style={styles.productImage}
+            />
+          </View>
+
+          <Text style={styles.productTitle}>Café Helado</Text>
+
+          <Text style={styles.productIngredients}>
+            Café, leche, hielo, azúcar, nata, sirope de chocolate, cacao
+          </Text>
+
+          <Pressable style={styles.addButton}>
+            <Text style={styles.addButtonText}>Añadir</Text>
+          </Pressable>
+        </Pressable>
+
+        <Pressable
+          style={({ hovered, pressed }) => [
+            styles.productCard,
+            hovered && styles.cardHover,
+            pressed && styles.cardPressed,
+          ]}
+        >
+          <View style={styles.imageContainer}>
+            <Image
+              source={require("../assets/platos/Shushi.png")}
+              style={styles.productImage}
+            />
+          </View>
+
+          <Text style={styles.productTitle}>Sushi de langostino frito</Text>
+
+          <Text style={styles.productIngredients}>
+            Langostino, panco, arroz, alga nori, aguacate
+          </Text>
+
+          <Pressable style={styles.addButton}>
+            <Text style={styles.addButtonText}>Añadir</Text>
+          </Pressable>
+        </Pressable>
+
+        <Pressable
+          style={({ hovered, pressed }) => [
+            styles.productCard,
+            hovered && styles.cardHover,
+            pressed && styles.cardPressed,
+          ]}
+        >
+          <View style={styles.imageContainer}>
+            <Image
+              source={require("../assets/platos/Lentejas.png")}
+              style={styles.productImage}
+            />
+          </View>
+
+          <Text style={styles.productTitle}>Lentejas</Text>
+
+          <Text style={styles.productIngredients}>
+            Lentejas, cebolla, ajo, pimentón, paprika, aceite de oliva, sal, pimienta, morcilla, chorizo, jamon
+          </Text>
+
+          <Pressable style={styles.addButton}>
+            <Text style={styles.addButtonText}>Añadir</Text>
+          </Pressable>
+        </Pressable>
+
+        <Pressable
+          style={({ hovered, pressed }) => [
+            styles.productCard,
+            hovered && styles.cardHover,
+            pressed && styles.cardPressed,
+          ]}
+        >
+          <View style={styles.imageContainer}>
+            <Image
+              source={require("../assets/platos/Pella.png")}
+              style={styles.productImage}
+            />
+          </View>
+
+          <Text style={styles.productTitle}>Paella</Text>
+
+          <Text style={styles.productIngredients}>
+            Arroz, mariscos, pimentón, azafrán, aceite de oliva, sal, pimienta
+          </Text>
+
+          <Pressable style={styles.addButton}>
+            <Text style={styles.addButtonText}>Añadir</Text>
+          </Pressable>
+        </Pressable>
+
       </ScrollView>
     </View>
   );
@@ -111,7 +313,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    backgroundColor: "rgba(48, 163, 58, 0.85)",
+    backgroundColor: "#2f695a",
     paddingVertical: 20,
     paddingHorizontal: 20,
     flexDirection: "row",
@@ -135,11 +337,11 @@ const styles = StyleSheet.create({
   backArrow: {
     fontSize: 34,
     fontWeight: "bold",
-    color: "#22222",
+    color: "#fff",
   },
 
   headerTitle: {
-    color: "#22222",
+    color: "#fff",
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
@@ -151,7 +353,7 @@ const styles = StyleSheet.create({
 
   welcome: {
     fontSize: 28,
-    color: "#22222",
+    color: "#2f695a",
     fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
@@ -198,7 +400,7 @@ const styles = StyleSheet.create({
   },
 
   addButton: {
-    backgroundColor: "rgba(48, 163, 58, 0.85)",
+    backgroundColor: "#f93",
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
