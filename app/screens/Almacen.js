@@ -70,9 +70,7 @@ export default function Almacen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.leftBox}>
-          <Text style={styles.backArrow}>←</Text>
-        </Pressable>
+        <View style={styles.leftBox} />
 
         <View style={styles.centerBox}>
           <Text style={styles.headerTitle}>мумєηυ</Text>
@@ -269,6 +267,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+    paddingBottom: 120,
   },
 
   storageContainer: {
