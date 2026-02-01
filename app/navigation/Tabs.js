@@ -32,16 +32,16 @@ function TabBarIcon({ focused, name, size, IconComponent = Ionicons }) {
 export default function Tabs() {
   return (
     <Tab.Navigator
+      initialRouteName="Almacen"
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: false,
         
-        // 🍎 Estilo iPhone Moderno
         tabBarStyle: {
           position: 'absolute',
           bottom: 25,
-          left: 40,
-          right: 40,
+          left: 55,
+          right: 55,
           elevation: 0,
           backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.95)' : '#ffffff',
           borderRadius: 35,
@@ -60,13 +60,12 @@ export default function Tabs() {
         tabBarActiveTintColor: '#007AFF',
         tabBarInactiveTintColor: '#8e8e93',
         
-        // Animaciones suaves
         tabBarItemStyle: {
           height: 70,
           paddingVertical: 0, 
           justifyContent: 'center',
           alignItems: 'center',
-          marginTop: 15, // Push icons down visually
+          marginTop: 15,
         },
 
         tabBarIcon: ({ focused, color, size }) => {
@@ -131,7 +130,6 @@ export default function Tabs() {
   );
 }
 
-// Estilos específicos para iPhone
 const styles = {
   iconContainer: {
     alignItems: 'center',
