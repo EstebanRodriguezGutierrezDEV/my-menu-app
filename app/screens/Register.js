@@ -1,18 +1,69 @@
-import { View, Text, StyleSheet, Pressable, ImageBackground, TextInput } from 'react-native';
-import { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ImageBackground,
+  TextInput,
+  Alert,
+} from 'react-native'
+import { useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 export default function Register({ navigation }) {
-  const [usuario, setUsuario] = useState('');
-  const [email, setEmail] = useState('');
-  const [contraseña, setContraseña] = useState('');
+  const [usuario, setUsuario] = useState('')
+  const [email, setEmail] = useState('')
+  const [contraseña, setContraseña] = useState('')
+  const [usuarioFocused, setUsuarioFocused] = useState(false)
+  const [emailFocused, setEmailFocused] = useState(false)
+  const [passwordFocused, setPasswordFocused] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleRegister = () => {
-    if (usuario.trim() !== '' && email.trim() !== '' && contraseña.trim() !== '') {
-      navigation.navigate('Home');
-    } else {
-      alert('Por favor completa todos los campos');
+  const handleRegister = async () => {
+    if (loading) return
+
+    if (!usuario || !email || !contraseña) {
+      Alert.alert('Error', 'Por favor completa todos los campos')
+      return
     }
-  };
+
+    if (contraseña.length < 6) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password: contraseña,
+        options: {
+          data: {
+            nombre: usuario, // se guarda en metadata y lo usa el trigger
+          },
+        },
+      })
+
+      if (error) {
+        Alert.alert('Error', error.message)
+        return
+      }
+
+      Alert.alert(
+        'Cuenta creada',
+        'Registro exitoso. Revisa tu correo si es necesario.'
+      )
+
+      navigation.navigate('Login')
+
+    } catch (err) {
+      console.error(err)
+      Alert.alert('Error', 'Error inesperado')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <ImageBackground
@@ -23,62 +74,69 @@ export default function Register({ navigation }) {
         <View style={styles.formContainer}>
           <Text style={styles.title}>мумєηυ</Text>
 
-          <Text style={styles.subtitle1}>𝓡𝓮𝓰𝓲𝓼𝓽𝓻𝓸:</Text>
+          <Text style={styles.subtitle1}>Crea tu cuenta en мумєηυ:</Text>
 
-          <Text style={styles.subtitle}>𝓤𝓼𝓾𝓪𝓻𝓲𝓸:</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, usuarioFocused && styles.inputFocused]}
             placeholder="Usuario"
             value={usuario}
             onChangeText={setUsuario}
+            onFocus={() => setUsuarioFocused(true)}
+            onBlur={() => setUsuarioFocused(false)}
+            autoCapitalize="none"
           />
 
-          <Text style={styles.subtitle}>𝒞𝑜𝓇𝓇𝑒𝑜 𝐸𝓁𝑒𝒸𝓉𝓇ó𝓃𝒾𝒸𝑜:</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Email"
+            style={[styles.input, emailFocused && styles.inputFocused]}
+            placeholder="Correo Electrónico"
             value={email}
             onChangeText={setEmail}
+            onFocus={() => setEmailFocused(true)}
+            onBlur={() => setEmailFocused(false)}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
 
-          <Text style={styles.subtitle}>𝒞𝑜𝓃𝓉𝓇𝒶𝓈𝑒ñ𝒶:</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Password"
+            style={[styles.input, passwordFocused && styles.inputFocused]}
+            placeholder="Contraseña"
             value={contraseña}
             onChangeText={setContraseña}
             secureTextEntry
+            onFocus={() => setPasswordFocused(true)}
+            onBlur={() => setPasswordFocused(false)}
           />
 
           <Pressable
             onPress={handleRegister}
-            style={({ hovered, pressed }) => [
+            disabled={loading}
+            style={({ pressed }) => [
               styles.button,
-              hovered && styles.hover,
-              pressed && styles.pressed
+              pressed && styles.pressed,
+              loading && { opacity: 0.6 },
             ]}
           >
-            <Text style={styles.buttonText}>Registrarse</Text>
+            <Text style={styles.buttonText}>
+              {loading ? 'Registrando...' : 'Registrarse'}
+            </Text>
           </Pressable>
 
           <View style={styles.registerContainer}>
-            <Text style={styles.subtitle2}>Ya tienes cuenta, </Text>
+            <Text style={styles.subtitle2}>¿Ya tienes cuenta? </Text>
             <Pressable onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.registerLink}>inicia sesión aquí.</Text>
+              <Text style={styles.registerLink}>Inicie sesión.</Text>
             </Pressable>
           </View>
         </View>
       </View>
     </ImageBackground>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
     resizeMode: 'cover',
-    width: '100%',
-    height: '100%',
   },
 
   container: {
@@ -90,90 +148,65 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '90%',
     maxWidth: 400,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(48, 163, 58, 0.85)',
-    padding: 30,
-    borderRadius: 20,
-    shadowColor: '#1df700ff',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    padding: 40,
+    borderRadius: 8,
     elevation: 10,
   },
 
   title: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: 24,
+    fontWeight: '300',
+    marginBottom: 30,
+    color: '#222',
+    textAlign: 'center',
   },
 
   subtitle1: {
-    fontSize: 20,
-    marginBottom: 20,
-    alignSelf: 'flex-start',
-    color: 'white',
-    fontFamily: 'Arial',
-    fontWeight: 'bold',
-  },
-
-  subtitle: {
-    fontSize: 20,
-    marginBottom: 10,
-    alignSelf: 'flex-start',
-    color: 'white',
-    fontFamily: 'Arial',
-    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 30,
+    color: '#666',
   },
 
   subtitle2: {
-    fontSize: 16,
-    color: 'white',
-    fontFamily: 'Arial',
-    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#666',
   },
 
   registerContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     marginTop: 20,
     alignSelf: 'center',
   },
 
   registerLink: {
-    color: 'blue',
+    color: '#0078d4',
     textDecorationLine: 'underline',
-    fontSize: 16,
-    fontFamily: 'Arial',
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
 
   input: {
     width: '100%',
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#000',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
-    backgroundColor: '#fff',
+    height: 44,
+    padding: 12,
+    marginBottom: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: '#605e5c',
+    fontSize: 14,
+  },
+
+  inputFocused: {
+    borderBottomColor: '#0078d4',
   },
 
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
-    backgroundColor: 'black',
+    marginTop: 24,
+    backgroundColor: '#0078d4',
     width: '100%',
-    padding: 14,
-    borderRadius: 8,
-  },
-
-  hover: {
-    backgroundColor: 'greenyellow',
+    padding: 12,
+    borderRadius: 4,
   },
 
   pressed: {
@@ -184,4 +217,4 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-});
+})

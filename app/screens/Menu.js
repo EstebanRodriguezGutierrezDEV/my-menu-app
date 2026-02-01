@@ -313,13 +313,12 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    backgroundColor: "#2f695a",
-    paddingVertical: 20,
+    backgroundColor: "#0078d4",
+    paddingTop: 50,
+    paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: "row",
-    alignItems: "center",
   },
-
   leftBox: {
     width: 50,
     justifyContent: "center",
@@ -353,7 +352,7 @@ const styles = StyleSheet.create({
 
   welcome: {
     fontSize: 28,
-    color: "#2f695a",
+    color: "#0078d4",
     fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
@@ -400,7 +399,7 @@ const styles = StyleSheet.create({
   },
 
   addButton: {
-    backgroundColor: "#f93",
+    backgroundColor: "#2EC4B6",
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",

@@ -238,8 +238,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F6FA",
   },
   header: {
-    backgroundColor: "#2f695a",
-    paddingVertical: 20,
+    backgroundColor: "#0078d4",
+    paddingTop: 50,
+    paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: '#ff9800',
+    backgroundColor: '#2EC4B6',
   },
 
   selectedStorage: {
@@ -317,7 +318,7 @@ const styles = StyleSheet.create({
   },
 
   selectedStorageText: {
-    color: '#ff9800',
+    color: '#2EC4B6',
     fontWeight: 'bold',
   },
 
@@ -330,13 +331,13 @@ const styles = StyleSheet.create({
   },
 
   viewAllButton: {
-    backgroundColor: '#2f695a',
+    backgroundColor: '#0078d4',
     paddingVertical: width > 400 ? 16 : 14,
     paddingHorizontal: width > 400 ? 24 : 20,
     borderRadius: width > 400 ? 12 : 10,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2f695a',
+    shadowColor: '#0078d4',
     shadowOpacity: 0.3,
     shadowRadius: width > 400 ? 8 : 6,
     shadowOffset: { width: 0, height: 4 },
@@ -353,13 +354,13 @@ const styles = StyleSheet.create({
   },
 
   addButton: {
-    backgroundColor: '#ff9800',
+    backgroundColor: '#2EC4B6',
     paddingVertical: width > 400 ? 16 : 14,
     paddingHorizontal: width > 400 ? 24 : 20,
     borderRadius: width > 400 ? 12 : 10,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#ff9800',
+    shadowColor: '#2EC4B6',
     shadowOpacity: 0.3,
     shadowRadius: width > 400 ? 8 : 6,
     shadowOffset: { width: 0, height: 4 },
@@ -412,7 +413,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: width > 400 ? 20 : 18,
     fontWeight: 'bold',
-    color: '#2f695a',
+    color: '#0078d4',
   },
 
   closeButton: {
@@ -473,7 +474,7 @@ const styles = StyleSheet.create({
 
   selectedStorageOption: {
     backgroundColor: 'transparent',
-    borderColor: '#ff9800',
+    borderColor: '#2EC4B6',
     borderWidth: 2,
   },
 
@@ -484,7 +485,7 @@ const styles = StyleSheet.create({
   },
 
   selectedStorageText: {
-    color: '#ff9800',
+    color: '#2EC4B6',
     fontWeight: 'bold',
   },
 
@@ -516,7 +517,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: width > 400 ? 12 : 10,
     borderRadius: width > 400 ? 10 : 8,
-    backgroundColor: '#2f695a',
+    backgroundColor: '#0078d4',
     alignItems: 'center',
     marginLeft: 10,
   },

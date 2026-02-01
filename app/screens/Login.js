@@ -1,17 +1,53 @@
-import { View, Text, StyleSheet, Pressable, ImageBackground, TextInput } from 'react-native';
-import { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ImageBackground,
+  TextInput,
+  Alert,
+} from 'react-native'
+import { useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 export default function Login({ navigation }) {
-  const [email, setEmail] = useState('');
-  const [contraseña, setContraseña] = useState('');
+  const [email, setEmail] = useState('')
+  const [contraseña, setContraseña] = useState('')
+  const [emailFocused, setEmailFocused] = useState(false)
+  const [passwordFocused, setPasswordFocused] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = () => {
-    if (email.trim() !== '' && contraseña.trim() !== '') {
-      navigation.navigate('Home');
-    } else {
-      alert('Por favor completa todos los campos');
+  const handleLogin = async () => {
+    if (loading) return
+
+    if (!email || !contraseña) {
+      Alert.alert('Error', 'Por favor completa todos los campos')
+      return
     }
-  };
+
+    setLoading(true)
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: contraseña,
+      })
+
+      if (error) {
+        Alert.alert('Error', 'Correo o contraseña incorrectos')
+        return
+      }
+
+      // ✅ LOGIN CORRECTO → ENTRAMOS A LAS TABS
+      navigation.replace('MainTabs')
+
+    } catch (err) {
+      console.error(err)
+      Alert.alert('Error', 'Error inesperado al iniciar sesión')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <ImageBackground
@@ -22,54 +58,59 @@ export default function Login({ navigation }) {
         <View style={styles.formContainer}>
           <Text style={styles.title}>мумєηυ</Text>
 
-          <Text style={styles.subtitle1}>𝓘𝓷𝓲𝓬𝓲𝓪𝓻 𝓢𝓮𝓼𝓲𝓸𝓷:</Text>
+          <Text style={styles.subtitle1}>Iniciar Sesión:</Text>
 
-          <Text style={styles.subtitle}>𝒞𝑜𝓇𝓇𝑒𝑜 𝐸𝓁𝑒𝒸𝓉𝓇ó𝓃𝒾𝒸𝑜:</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Email"
+            style={[styles.input, emailFocused && styles.inputFocused]}
+            placeholder="Correo Electrónico"
             value={email}
             onChangeText={setEmail}
+            onFocus={() => setEmailFocused(true)}
+            onBlur={() => setEmailFocused(false)}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
 
-          <Text style={styles.subtitle}>𝒞𝑜𝓃𝓉𝓇𝒶𝓈𝑒ñ𝒶:</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Password"
+            style={[styles.input, passwordFocused && styles.inputFocused]}
+            placeholder="Contraseña"
             value={contraseña}
             onChangeText={setContraseña}
             secureTextEntry
+            onFocus={() => setPasswordFocused(true)}
+            onBlur={() => setPasswordFocused(false)}
           />
 
           <Pressable
             onPress={handleLogin}
-            style={({ hovered, pressed }) => [
+            disabled={loading}
+            style={({ pressed }) => [
               styles.button,
-              hovered && styles.hover,
-              pressed && styles.pressed
+              pressed && styles.pressed,
+              loading && { opacity: 0.6 },
             ]}
           >
-            <Text style={styles.buttonText}>Iniciar sesión</Text>
+            <Text style={styles.buttonText}>
+              {loading ? 'Iniciando...' : 'Iniciar sesión'}
+            </Text>
           </Pressable>
 
           <View style={styles.registerContainer}>
-            <Text style={styles.subtitle2}>No tienes cuenta, </Text>
+            <Text style={styles.subtitle2}>¿No tienes cuenta? </Text>
             <Pressable onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.registerLink}>regístrate aquí.</Text>
+              <Text style={styles.registerLink}>Crea una.</Text>
             </Pressable>
           </View>
         </View>
       </View>
     </ImageBackground>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
     resizeMode: 'cover',
-    width: '100%',
-    height: '100%',
   },
 
   container: {
@@ -81,89 +122,65 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '90%',
     maxWidth: 400,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2f695a',
-    padding: 30,
-    borderRadius: 20,
-    shadowColor: '#2f695a',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    padding: 40,
+    borderRadius: 8,
     elevation: 10,
   },
 
   title: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#fff',
+    fontSize: 28,
+    fontWeight: '300',
+    marginBottom: 30,
+    color: '#222',
+    textAlign: 'center',
   },
 
   subtitle1: {
-    fontSize: 20,
-    marginBottom: 20,
-    alignSelf: 'flex-start',
-    color: 'white',
-    fontFamily: 'Arial',
-    fontWeight: 'bold',
-  },
-
-  subtitle: {
-    fontSize: 20,
-    marginBottom: 10,
-    alignSelf: 'flex-start',
-    color: 'white',
-    fontFamily: 'Arial',
-    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 30,
+    color: '#666',
   },
 
   subtitle2: {
-    fontSize: 16,
-    color: 'white',
-    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#666',
   },
 
   registerContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     marginTop: 20,
+    alignSelf: 'center',
   },
 
   registerLink: {
-    color: 'blue',
+    color: '#0078d4',
     textDecorationLine: 'underline',
-    fontSize: 16,
-    fontFamily: 'Arial',
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
 
   input: {
     width: '100%',
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#fff',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
-    backgroundColor: '#fff',
+    height: 44,
+    padding: 12,
+    marginBottom: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: '#605e5c',
+    fontSize: 14,
+  },
+
+  inputFocused: {
+    borderBottomColor: '#0078d4',
   },
 
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
-    backgroundColor: 'black',
+    marginTop: 24,
+    backgroundColor: '#0078d4',
     width: '100%',
-    padding: 14,
-    borderRadius: 8,
-  },
-
-  hover: {
-    backgroundColor: 'greenyellow',
+    padding: 12,
+    borderRadius: 4,
   },
 
   pressed: {
@@ -174,4 +191,4 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-});
+})

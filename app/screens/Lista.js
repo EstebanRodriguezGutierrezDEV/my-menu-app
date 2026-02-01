@@ -146,8 +146,9 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    backgroundColor: "#2f695a",
-    paddingVertical: 20,
+    backgroundColor: "#0078d4",
+    paddingTop: 50,
+    paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
 
   welcome: {
     fontSize: 32,
-    color: "#2f695a",
+    color: "#0078d4",
     fontWeight: "bold",
     marginBottom: 8,
     textAlign: "center",
@@ -236,14 +237,14 @@ const styles = StyleSheet.create({
   },
 
   addButton: {
-    backgroundColor: '#2f695a',
+    backgroundColor: '#0078d4',
     width: 50,
     height: 50,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
-    shadowColor: '#2f695a',
+    shadowColor: '#0078d4',
     shadowOpacity: 0.3,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
@@ -314,11 +315,11 @@ const styles = StyleSheet.create({
   },
 
   summaryContainer: {
-    backgroundColor: '#2f695a',
+    backgroundColor: '#0078d4',
     borderRadius: width > 400 ? 15 : 12,
     padding: width > 400 ? 15 : 12,
     alignItems: 'center',
-    shadowColor: '#2f695a',
+    shadowColor: '#0078d4',
     shadowOpacity: 0.3,
     shadowRadius: width > 400 ? 8 : 5,
     shadowOffset: { width: 0, height: 4 },
@@ -346,8 +347,8 @@ const styles = StyleSheet.create({
   },
 
   checkboxChecked: {
-    backgroundColor: '#2f695a',
-    borderColor: '#2f695a',
+    backgroundColor: '#0078d4',
+    borderColor: '#0078d4',
   },
 
   checkmark: {
