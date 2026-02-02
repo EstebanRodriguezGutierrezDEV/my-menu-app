@@ -38,6 +38,45 @@ export default function Login({ navigation }) {
         return
       }
 
+      const { data } = await supabase.auth.getUser()
+      
+      if (data?.user) {
+        const { data: alimentos } = await supabase
+          .from('alimentos')
+          .select('nombre, fecha_caducidad')
+          .eq('user_id', data.user.id)
+
+        if (alimentos) {
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+
+          const expiringCount = alimentos.filter((item) => {
+            if (!item.fecha_caducidad) return false
+            const parts = item.fecha_caducidad.split('-')
+            if (parts.length !== 3) return false
+            
+            const year = parseInt(parts[0], 10)
+            const month = parseInt(parts[1], 10) - 1
+            const day = parseInt(parts[2], 10)
+            
+            const expiry = new Date(year, month, day)
+            const diff = expiry - today
+            const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24))
+            
+            return daysLeft <= 3
+          }).length
+
+          if (expiringCount > 0) {
+            Alert.alert(
+              '¡Atención!',
+              `Tienes ${expiringCount} producto(s) a punto de caducar o caducados.`,
+              [{ text: 'Entendido', onPress: () => navigation.replace('MainTabs') }]
+            )
+            return
+          }
+        }
+      }
+
       // ✅ LOGIN CORRECTO → ENTRAMOS A LAS TABS
       navigation.replace('MainTabs')
 

@@ -65,30 +65,46 @@ export default function Lista({ navigation }) {
     }
   };
 
-  const toggleHaveItem = async (id, currentStatus) => {
-    const { error } = await supabase
-      .from("lista_compra")
-      .update({ is_checked: !currentStatus })
-      .eq("id", id);
 
-    if (error) {
-      console.error("Error updating item:", error);
-    } else {
-      fetchItems();
-    }
-  };
 
-  const removeHaveItems = async () => {
-    const { error } = await supabase
-      .from("lista_compra")
-      .delete()
-      .eq("is_checked", true);
+  const deleteItem = async (id) => {
+    Alert.alert(
+      "Eliminar producto",
+      "¿Estás seguro de que quieres eliminar este producto?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+              Alert.alert("Error", "No estás autenticado");
+              return;
+            }
 
-    if (error) {
-      console.error("Error deleting items:", error);
-    } else {
-      fetchItems();
-    }
+            const { error, count } = await supabase
+              .from("lista_compra")
+              .delete({ count: "exact" })
+              .eq("id", id)
+              .eq("user_id", user.id);
+
+            if (error) {
+              Alert.alert("Error", "No se pudo eliminar el producto: " + error.message);
+            } else if (count === 0) {
+              Alert.alert(
+                "Error",
+                "No se borró ningún elemento. Puede que no tengas permisos."
+              );
+              fetchItems();
+            } else {
+              fetchItems();
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -126,33 +142,18 @@ export default function Lista({ navigation }) {
 
         <View style={styles.itemsContainer}>
           {items.map((item) => (
-            <Pressable
-              key={item.id}
-              style={[
-                styles.item,
-                item.is_checked && styles.haveItem,
-              ]}
-              onPress={() => toggleHaveItem(item.id, item.is_checked)}
-            >
-              <View style={styles.itemLeft}>
-                <View
-                  style={[
-                    styles.checkboxBox,
-                    item.is_checked && styles.checkboxChecked,
-                  ]}
-                >
-                  {item.is_checked && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text
-                  style={[
-                    styles.itemText,
-                    item.is_checked && styles.haveItemText,
-                  ]}
-                >
-                  {item.name}
-                </Text>
+            <View key={item.id} style={styles.itemWrapper}>
+              <View style={styles.item}>
+                <Text style={styles.itemText}>{item.name}</Text>
               </View>
-            </Pressable>
+              
+              <Pressable 
+                style={styles.deleteButton} 
+                onPress={() => deleteItem(item.id)}
+              >
+                <Text style={styles.deleteIcon}>🗑️</Text>
+              </Pressable>
+            </View>
           ))}
         </View>
 
@@ -175,21 +176,7 @@ export default function Lista({ navigation }) {
           </View>
         )}
 
-        {items.some((i) => i.is_checked) && (
-          <View style={styles.haveItemsActions}>
-            <Text style={styles.haveItemsCount}>
-              Tienes {items.filter((i) => i.is_checked).length} alimentos
-            </Text>
-            <Pressable
-              style={styles.removeHaveButton}
-              onPress={removeHaveItems}
-            >
-              <Text style={styles.removeHaveButtonText}>
-                Eliminar alimentos que tengo
-              </Text>
-            </Pressable>
-          </View>
-        )}
+
       </ScrollView>
     </View>
   );
@@ -312,19 +299,44 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
+  itemWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
   item: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
     padding: 18,
     borderRadius: 15,
-    marginBottom: 12,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     borderWidth: 1,
     borderColor: "#f0f0f0",
+    marginRight: 10,
+  },
+  
+  deleteButton: {
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
+  },
+  
+  deleteIcon: {
+    fontSize: 20,
   },
 
   itemLeft: {
@@ -382,64 +394,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  checkboxBox: {
-    width: width > 400 ? 24 : 20,
-    height: width > 400 ? 24 : 20,
-    borderWidth: 2,
-    borderColor: "#ccc",
-    borderRadius: width > 400 ? 6 : 4,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
 
-  checkboxChecked: {
-    backgroundColor: "#0078d4",
-    borderColor: "#0078d4",
-  },
-
-  checkmark: {
-    color: "#fff",
-    fontSize: width > 400 ? 16 : 14,
-    fontWeight: "bold",
-  },
-
-  haveItem: {
-    backgroundColor: "#ffebee",
-    borderColor: "#f44336",
-  },
-
-  haveItemText: {
-    textDecorationLine: "line-through",
-    color: "#888",
-  },
-
-  haveItemsActions: {
-    alignItems: "center",
-    marginTop: 10,
-  },
-
-  haveItemsCount: {
-    fontSize: width > 400 ? 16 : 14,
-    color: "#4caf50",
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-
-  removeHaveButton: {
-    backgroundColor: "#ff6b6b",
-    paddingVertical: width > 400 ? 12 : 10,
-    paddingHorizontal: width > 400 ? 20 : 15,
-    borderRadius: width > 400 ? 10 : 8,
-    shadowColor: "#ff6b6b",
-    shadowOpacity: 0.3,
-    shadowRadius: width > 400 ? 5 : 3,
-    shadowOffset: { width: 0, height: 2 },
-  },
-
-  removeHaveButtonText: {
-    color: "#fff",
-    fontSize: width > 400 ? 14 : 12,
-    fontWeight: "bold",
-  },
 });
