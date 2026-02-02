@@ -105,9 +105,9 @@ export default function Tabs() {
 
         tabBarStyle: {
           position: 'absolute',
-          bottom: 25,
-          left: 55,
-          right: 55,
+          bottom: 10,
+          left: 10,
+          right: 10,
           elevation: 0,
           backgroundColor:
             Platform.OS === 'ios'

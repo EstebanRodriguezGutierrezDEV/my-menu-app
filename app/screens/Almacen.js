@@ -6,6 +6,7 @@ import {
   ScrollView,
   TextInput,
   Dimensions,
+  Alert,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
@@ -150,13 +151,47 @@ export default function Almacen() {
       nombre: newItem.name,
       cantidad: newItem.quantity,
       fecha_caducidad: formattedDate,
-      almacenamiento: selectedStorage,
+      almacenamiento: newItem.storage || selectedStorage, // Use modal selection
       notificado: false,
     });
 
     setShowAddModal(false);
+    // Reset to current view's storage for convenience, but user can change it next time
     setNewItem({ name: "", expiryDate: "", quantity: "", storage: selectedStorage });
     loadAlimentos();
+  };
+
+  /* =======================
+     ELIMINAR
+  ======================== */
+  const deleteFood = async (id) => {
+    Alert.alert(
+      "Eliminar alimento",
+      "¿Estás seguro de que quieres eliminar este alimento?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { error } = await supabase
+              .from("alimentos")
+              .delete()
+              .eq("id", id)
+              .eq("user_id", user.id);
+
+            if (error) {
+              Alert.alert("Error", "No se pudo eliminar: " + error.message);
+            } else {
+              loadAlimentos();
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -177,20 +212,34 @@ export default function Almacen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable style={styles.addButton} onPress={() => setShowAddModal(true)}>
+        <Pressable style={styles.addButton} onPress={() => {
+          // Sync modal storage default with current view
+          setNewItem({ ...newItem, storage: selectedStorage });
+          setShowAddModal(true);
+        }}>
           <Text style={styles.addButtonText}>Añadir alimento</Text>
         </Pressable>
 
         {alimentos.map((item) => {
           const daysLeft = getDaysLeft(item.fecha_caducidad);
+          const cardStyle = getCardStyleByDays(daysLeft);
 
           return (
-            <View key={item.id} style={getCardStyleByDays(daysLeft)}>
-              <Text style={styles.foodName}>{item.nombre}</Text>
-              <Text style={styles.foodMeta}>
-                {item.cantidad || "Sin cantidad"} ·{" "}
-                {daysLeft !== null ? `${daysLeft} día(s)` : "Sin fecha"}
-              </Text>
+            <View key={item.id} style={[styles.foodCard, cardStyle]}>
+              <View style={styles.foodInfo}>
+                <Text style={styles.foodName}>{item.nombre}</Text>
+                <Text style={styles.foodMeta}>
+                  {item.cantidad || "Sin cantidad"} ·{" "}
+                  {daysLeft !== null ? `${daysLeft} día(s)` : "Sin fecha"}
+                </Text>
+              </View>
+
+              <Pressable 
+                style={styles.deleteButtonInternal} 
+                onPress={() => deleteFood(item.id)}
+              >
+                <Text style={styles.deleteIcon}>🗑️</Text>
+              </Pressable>
             </View>
           );
         })}
@@ -199,12 +248,15 @@ export default function Almacen() {
       {showAddModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
+            <Text style={styles.modalLabel}>Nombre</Text>
             <TextInput
               style={styles.modalInput}
-              placeholder="Nombre"
+              placeholder="Ej. Leche"
               value={newItem.name}
               onChangeText={(t) => setNewItem({ ...newItem, name: t })}
             />
+            
+            <Text style={styles.modalLabel}>Fecha de caducidad</Text>
             <TextInput
               style={styles.modalInput}
               placeholder="DD/MM/YYYY"
@@ -212,12 +264,37 @@ export default function Almacen() {
               onChangeText={(t) => setNewItem({ ...newItem, expiryDate: formatExpiryDate(t) })}
               keyboardType="numeric"
             />
+            
+            <Text style={styles.modalLabel}>Cantidad</Text>
             <TextInput
               style={styles.modalInput}
-              placeholder="Cantidad"
+              placeholder="Ej. 1 litro"
               value={newItem.quantity}
               onChangeText={(t) => setNewItem({ ...newItem, quantity: t })}
             />
+
+            <Text style={styles.modalLabel}>¿Dónde guardarlo?</Text>
+            <View style={styles.modalStorageContainer}>
+              {["nevera", "arcon", "despensa"].map((s) => (
+                <Pressable
+                  key={s}
+                  style={[
+                    styles.modalStorageOption,
+                    newItem.storage === s && styles.modalStorageSelected,
+                  ]}
+                  onPress={() => setNewItem({ ...newItem, storage: s })}
+                >
+                  <Text
+                    style={[
+                      styles.modalStorageText,
+                      newItem.storage === s && styles.modalStorageTextSelected,
+                    ]}
+                  >
+                    {s === "nevera" ? "Nevera" : s === "arcon" ? "Arcón" : "Despensa"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
 
             <View style={styles.modalActions}>
               <Pressable style={styles.cancelButton} onPress={() => setShowAddModal(false)}>
@@ -261,13 +338,33 @@ const styles = StyleSheet.create({
 
   addButtonText: { color: "#fff", fontWeight: "bold" },
 
+  addButtonText: { color: "#fff", fontWeight: "bold" },
+
   foodCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: "#fff",
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: "#eee",
+  },
+  
+  foodInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  
+  deleteButtonInternal: {
+    padding: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  
+  deleteIcon: {
+    fontSize: 20,
   },
 
   expiredRed: {
@@ -293,12 +390,52 @@ const styles = StyleSheet.create({
 
   modalCard: { backgroundColor: "#fff", width: "90%", borderRadius: 15, padding: 15 },
 
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 5,
+    color: "#333",
+  },
+
+  modalStorageContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    marginTop: 5,
+  },
+
+  modalStorageOption: {
+    flex: 1,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    alignItems: "center",
+    marginHorizontal: 4,
+    backgroundColor: "#fff",
+  },
+
+  modalStorageSelected: {
+    backgroundColor: "#0078d4",
+    borderColor: "#0078d4",
+  },
+
+  modalStorageText: {
+    color: "#333",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  modalStorageTextSelected: {
+    color: "#fff",
+  },
+
   modalInput: {
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 8,
     padding: 10,
-    marginBottom: 10,
+    marginBottom: 15,
     backgroundColor: "#f8f9fa",
   },
 

@@ -11,6 +11,8 @@ import {
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 const { width } = Dimensions.get("window");
 
@@ -107,6 +109,44 @@ export default function Lista({ navigation }) {
     );
   };
 
+  const generatePDF = async () => {
+    if (items.length === 0) {
+      Alert.alert("Lista vacía", "No hay elementos para generar el PDF.");
+      return;
+    }
+
+    const htmlContent = `
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; }
+            h1 { text-align: center; color: #0078d4; }
+            ul { list-style-type: none; padding: 0; }
+            li { padding: 10px; border-bottom: 1px solid #eee; font-size: 18px; }
+            .checkbox { display: inline-block; width: 20px; height: 20px; border: 2px solid #333; margin-right: 10px; vertical-align: middle; }
+          </style>
+        </head>
+        <body>
+          <h1>Lista de la Compra</h1>
+          <ul>
+            ${items.map(item => `
+              <li><span class="checkbox"></span>${item.name}</li>
+            `).join('')}
+          </ul>
+        </body>
+      </html>
+    `;
+
+    try {
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "No se pudo generar o compartir el PDF");
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -168,15 +208,10 @@ export default function Lista({ navigation }) {
         )}
 
         {items.length > 0 && (
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryText}>
-              📋 Total: {items.length}{" "}
-              {items.length === 1 ? "alimento" : "alimentos"}
-            </Text>
-          </View>
+          <Pressable style={styles.pdfButton} onPress={generatePDF}>
+            <Text style={styles.pdfButtonText}>� Generar PDF y Compartir</Text>
+          </Pressable>
         )}
-
-
       </ScrollView>
     </View>
   );
@@ -377,20 +412,21 @@ const styles = StyleSheet.create({
     fontSize: width > 400 ? 14 : 12,
   },
 
-  summaryContainer: {
+  pdfButton: {
     backgroundColor: "#0078d4",
-    borderRadius: width > 400 ? 15 : 12,
-    padding: width > 400 ? 15 : 12,
+    borderRadius: 12,
+    padding: 15,
     alignItems: "center",
     shadowColor: "#0078d4",
     shadowOpacity: 0.3,
-    shadowRadius: width > 400 ? 8 : 5,
+    shadowRadius: 5,
     shadowOffset: { width: 0, height: 4 },
+    marginBottom: 20,
   },
 
-  summaryText: {
+  pdfButtonText: {
     color: "#fff",
-    fontSize: width > 400 ? 16 : 14,
+    fontSize: 16,
     fontWeight: "bold",
   },
 
