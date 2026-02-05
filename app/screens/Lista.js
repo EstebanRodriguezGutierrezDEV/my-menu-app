@@ -67,9 +67,43 @@ export default function Lista({ navigation }) {
     }
   };
 
+  const deleteAllItems = async () => {
+    if (items.length === 0) return;
 
+    Alert.alert(
+      "Eliminar todo",
+      "Seguro que quieres borrar toda la lista?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar todo",
+          style: "destructive",
+          onPress: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+              Alert.alert("Error", "No estas autenticado");
+              return;
+            }
+
+            const { error } = await supabase
+              .from("lista_compra")
+              .delete()
+              .eq("user_id", user.id);
+
+            if (error) {
+              Alert.alert("Error", "No se pudo borrar la lista: " + error.message);
+            } else {
+              fetchItems();
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const deleteItem = async (id) => {
+
     Alert.alert(
       "Eliminar producto",
       "¿Estás seguro de que quieres eliminar este producto?",
@@ -115,25 +149,97 @@ export default function Lista({ navigation }) {
       return;
     }
 
+    const dateStr = new Date().toLocaleDateString("es-ES");
+
+
     const htmlContent = `
       <html>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
           <style>
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; }
-            h1 { text-align: center; color: #0078d4; }
-            ul { list-style-type: none; padding: 0; }
-            li { padding: 10px; border-bottom: 1px solid #eee; font-size: 18px; }
-            .checkbox { display: inline-block; width: 20px; height: 20px; border: 2px solid #333; margin-right: 10px; vertical-align: middle; }
+            * { box-sizing: border-box; }
+            body {
+              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+              margin: 0;
+              padding: 24px;
+              background: #f5f7fb;
+              color: #1f2a44;
+            }
+            .card {
+              background: #ffffff;
+              border-radius: 16px;
+              padding: 24px;
+              box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            }
+            .title {
+              margin: 0 0 4px 0;
+              text-align: center;
+              color: #0078d4;
+              font-size: 28px;
+            }
+            .meta {
+              text-align: center;
+              color: #6b7280;
+              font-size: 13px;
+              margin-bottom: 16px;
+            }
+            .summary {
+              background: #eef6ff;
+              border: 1px solid #cfe4ff;
+              color: #0b3d91;
+              padding: 10px 12px;
+              border-radius: 10px;
+              font-size: 14px;
+              margin-bottom: 16px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 16px;
+            }
+            th, td {
+              padding: 12px 10px;
+              border-bottom: 1px solid #eef0f4;
+            }
+            th {
+              text-align: left;
+              color: #6b7280;
+              font-weight: 600;
+              font-size: 12px;
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
+            }
+            .check {
+              width: 18px;
+              height: 18px;
+              border: 2px solid #1f2a44;
+              border-radius: 4px;
+              display: inline-block;
+            }
           </style>
         </head>
         <body>
-          <h1>Lista de la Compra</h1>
-          <ul>
-            ${items.map(item => `
-              <li><span class="checkbox"></span>${item.name}</li>
-            `).join('')}
-          </ul>
+          <div class="card">
+            <h1 class="title">Lista de la compra</h1>
+            <div class="meta">${dateStr}</div>
+            <div class="summary">Total de productos: ${items.length}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Hecho</th>
+                  <th>Producto</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map(item => `
+                  <tr>
+                    <td><span class="check"></span></td>
+                    <td>${item.name}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </body>
       </html>
     `;
@@ -208,9 +314,14 @@ export default function Lista({ navigation }) {
         )}
 
         {items.length > 0 && (
-          <Pressable style={styles.pdfButton} onPress={generatePDF}>
-            <Text style={styles.pdfButtonText}>� Generar PDF y Compartir</Text>
-          </Pressable>
+          <View style={styles.actionsRow}>
+            <Pressable style={styles.deleteAllButton} onPress={deleteAllItems}>
+              <Text style={styles.deleteAllButtonText}>Eliminar todo</Text>
+            </Pressable>
+            <Pressable style={styles.pdfButton} onPress={generatePDF}>
+              <Text style={styles.pdfButtonText}> Generar PDF y Compartir</Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
     </View>
@@ -412,6 +523,27 @@ const styles = StyleSheet.create({
     fontSize: width > 400 ? 14 : 12,
   },
 
+  actionsRow: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
+  },
+
+  deleteAllButton: {
+    backgroundColor: "#FF0000",
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    width: "100%",
+  },
+
+  deleteAllButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+
   pdfButton: {
     backgroundColor: "#0078d4",
     borderRadius: 12,
@@ -422,6 +554,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 4 },
     marginBottom: 20,
+    width: "100%",
   },
 
   pdfButtonText: {

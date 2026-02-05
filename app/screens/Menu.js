@@ -8,6 +8,7 @@ import {
   TextInput,
   Dimensions,
   Alert,
+  Linking
 } from "react-native";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
@@ -16,6 +17,7 @@ const { width } = Dimensions.get("window");
 
 export default function Menu() {
   const [recipes, setRecipes] = useState([]);
+  const [videos, setVideos] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState("Todos");
   const [loading, setLoading] = useState(true);
@@ -38,9 +40,46 @@ export default function Menu() {
     setLoading(false);
   };
 
+  /* =======================
+     CARGAR VIDEOS
+     (youtube_url = watch?v=)
+  ======================== */
+  const loadVideos = async () => {
+    const { data, error } = await supabase
+      .from("videos")
+      .select("receta_id, youtube_url");
+
+    if (error) {
+      console.error("Error cargando videos:", error);
+      return;
+    }
+
+    const map = {};
+    data.forEach((v) => {
+      if (v.receta_id && v.youtube_url) {
+        map[v.receta_id] = v.youtube_url;
+      }
+    });
+
+    setVideos(map);
+  };
+
   useEffect(() => {
     loadRecipes();
+    loadVideos();
   }, []);
+
+  /* =======================
+     ABRIR YOUTUBE
+  ======================== */
+  const openYoutube = async (url) => {
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "No se pudo abrir YouTube");
+    }
+  };
 
   /* =======================
      FILTRADO
@@ -85,7 +124,9 @@ export default function Menu() {
   ======================== */
   const addToShoppingList = async (ingredients, recipeTitle) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
         Alert.alert("Error", "Debes iniciar sesión");
@@ -138,7 +179,7 @@ export default function Menu() {
         />
 
         {/* FILTROS */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {["Todos", "Fácil", "Medio", "Difícil"].map((diff) => (
             <Pressable
               key={diff}
@@ -151,7 +192,8 @@ export default function Menu() {
               <Text
                 style={[
                   styles.filterChipText,
-                  selectedDifficulty === diff && styles.filterChipTextSelected,
+                  selectedDifficulty === diff &&
+                    styles.filterChipTextSelected,
                 ]}
               >
                 {diff}
@@ -185,7 +227,10 @@ export default function Menu() {
                 <View
                   style={[
                     styles.difficultyBadge,
-                    { backgroundColor: getDifficultyColor(recipe.nivel) + "20" },
+                    {
+                      backgroundColor:
+                        getDifficultyColor(recipe.nivel) + "20",
+                    },
                   ]}
                 >
                   <Text
@@ -202,6 +247,18 @@ export default function Menu() {
               <Text style={styles.productIngredients}>
                 {recipe.ingredientes}
               </Text>
+
+              {/* BOTÓN YOUTUBE */}
+              {videos[recipe.id] && (
+                <Pressable
+                  style={styles.videoButton}
+                  onPress={() => openYoutube(videos[recipe.id])}
+                >
+                  <Text style={styles.videoButtonText}>
+                    Ver receta en YouTube
+                  </Text>
+                </Pressable>
+              )}
 
               <Pressable
                 style={styles.addButton}
@@ -258,8 +315,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
-
-  filtersContainer: { marginBottom: 20 },
 
   filterChip: {
     paddingVertical: 8,
@@ -324,6 +379,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#555",
     marginBottom: 15,
+  },
+
+  videoButton: {
+    backgroundColor: "#FF0000",
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  videoButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 
   addButton: {
