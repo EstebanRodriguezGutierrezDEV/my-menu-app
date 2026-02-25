@@ -1,95 +1,108 @@
-import React, { useEffect } from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Platform, View, Alert } from 'react-native';
+import React, { useEffect } from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Platform, View, StyleSheet, Alert } from "react-native";
 
-import Menu from '../screens/Menu';
-import Lista from '../screens/Lista';
-import Configuracion from '../screens/Configuracion';
-import Almacen from '../screens/Almacen';
-import { supabase } from '../lib/supabase';
+import Menu from "../screens/Menu";
+import Lista from "../screens/Lista";
+import Configuracion from "../screens/Configuracion";
+import Almacen from "../screens/Almacen";
+import { supabase } from "../lib/supabase";
 
 const Tab = createBottomTabNavigator();
 
-/* ⏱️ Calcula días hasta caducar */
+const ACCENT = "#4DA6FF";
+const BAR_BG = "#0D1925";
+
+/* ── Días hasta caducar ─────────────────────────────────────── */
 function diasHastaCaducar(fechaCaducidad) {
   const hoy = new Date();
   const caducidad = new Date(fechaCaducidad);
-  const diferencia = caducidad - hoy;
-  return Math.ceil(diferencia / (1000 * 60 * 60 * 24));
+  return Math.ceil((caducidad - hoy) / (1000 * 60 * 60 * 24));
 }
 
-// Componente icono (NO tocamos tu diseño)
-function TabBarIcon({ focused, name, size, IconComponent = Ionicons }) {
+/* ── Icono personalizado ────────────────────────────────────── */
+function TabIcon({ focused, name, size, label, IconComponent = Ionicons }) {
   return (
-    <View style={styles.iconContainer}>
-      <View
-        style={[
-          styles.iconBackground,
-          focused && styles.iconBackgroundFocused,
-        ]}
-      >
+    <View style={styles.iconWrapper}>
+      <View style={[styles.iconBg, focused && styles.iconBgActive]}>
         <IconComponent
           name={name}
           size={size}
-          color={focused ? '#007AFF' : '#8e8e93'}
+          color={focused ? "#fff" : "rgba(255,255,255,0.38)"}
         />
       </View>
     </View>
   );
 }
 
-export default function Tabs() {
+/* ── Configuración de tabs ──────────────────────────────────── */
+const TAB_CONFIG = {
+  Menu: {
+    icon: ["restaurant", "restaurant-outline"],
+    label: "Carta",
+    size: 22,
+    Comp: Ionicons,
+  },
+  Lista: {
+    icon: ["cart", "cart-outline"],
+    label: "Lista",
+    size: 22,
+    Comp: Ionicons,
+  },
+  Almacen: {
+    icon: ["fridge", "fridge-outline"],
+    label: "Almacén",
+    size: 24,
+    Comp: MaterialCommunityIcons,
+  },
+  Configuracion: {
+    icon: ["settings", "settings-outline"],
+    label: "Ajustes",
+    size: 22,
+    Comp: Ionicons,
+  },
+};
 
-  /* 🚀 ALERT AL INICIAR SESIÓN */
+export default function Tabs() {
+  /* ── Alerta de caducidad al iniciar ────────────────────────── */
   useEffect(() => {
     async function comprobarCaducidades() {
-      // 1️⃣ Usuario autenticado
       const {
         data: { user },
       } = await supabase.auth.getUser();
-
       if (!user) return;
 
-      // 2️⃣ Obtener alimentos del usuario
       const { data: alimentos, error } = await supabase
-        .from('alimentos')
-        .select(
-          'id, nombre, fecha_caducidad, almacenamiento, notificado'
-        )
-        .eq('user_id', user.id);
+        .from("alimentos")
+        .select("id, nombre, fecha_caducidad, almacenamiento, notificado")
+        .eq("user_id", user.id);
 
       if (error || !alimentos || alimentos.length === 0) return;
 
-      // 3️⃣ Filtrar alimentos a punto de caducar
-      const alimentosCaducar = alimentos.filter(alimento => {
-        const dias = diasHastaCaducar(alimento.fecha_caducidad);
-        return dias <= 3 && dias >= 0 && !alimento.notificado;
+      const alimentosCaducar = alimentos.filter((a) => {
+        const dias = diasHastaCaducar(a.fecha_caducidad);
+        return dias <= 3 && dias >= 0 && !a.notificado;
       });
 
       if (alimentosCaducar.length === 0) return;
 
-      // 4️⃣ Construir mensaje
       const mensaje = alimentosCaducar
-        .map(alimento => {
-          const dias = diasHastaCaducar(alimento.fecha_caducidad);
-          return `• ${alimento.nombre} (${alimento.almacenamiento}) → ${dias} día(s)`;
-        })
-        .join('\n');
+        .map(
+          (a) =>
+            `• ${a.nombre} (${a.almacenamiento}) → ${diasHastaCaducar(a.fecha_caducidad)} día(s)`,
+        )
+        .join("\n");
 
-      // 5️⃣ Mostrar ALERT
-      Alert.alert(
-        '⚠️ Alimentos a punto de caducar',
-        mensaje,
-        [{ text: 'Entendido' }]
-      );
+      Alert.alert("⚠️ Alimentos a punto de caducar", mensaje, [
+        { text: "Entendido" },
+      ]);
 
-      // 6️⃣ Marcar como notificados
-      alimentosCaducar.forEach(async alimento => {
+      alimentosCaducar.forEach(async (a) => {
         await supabase
-          .from('alimentos')
+          .from("alimentos")
           .update({ notificado: true })
-          .eq('id', alimento.id);
+          .eq("id", a.id);
       });
     }
 
@@ -99,79 +112,51 @@ export default function Tabs() {
   return (
     <Tab.Navigator
       initialRouteName="Almacen"
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarShowLabel: false,
+      screenOptions={({ route }) => {
+        const cfg = TAB_CONFIG[route.name];
 
-        tabBarStyle: {
-          position: 'absolute',
-          bottom: 10,
-          left: 10,
-          right: 10,
-          elevation: 0,
-          backgroundColor:
-            Platform.OS === 'ios'
-              ? 'rgba(255,255,255,0.95)'
-              : '#ffffff',
-          borderRadius: 35,
-          height: 70,
-          borderTopWidth: 0,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
-        },
+        return {
+          headerShown: false,
+          tabBarShowLabel: false,
 
-        tabBarItemStyle: {
-          height: 70,
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginTop: 15,
-        },
+          tabBarStyle: {
+            position: "absolute",
+            bottom: 16,
+            left: 16,
+            right: 16,
+            height: 72,
+            borderRadius: 24,
+            backgroundColor: BAR_BG,
+            borderTopWidth: 0,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.45,
+            shadowRadius: 20,
+            elevation: 16,
+            marginLeft: 15,
+            marginRight: 15,
+          },
 
-        tabBarIcon: ({ focused }) => {
-          let iconName;
-          let iconSize = 24;
-          let IconComponent = Ionicons;
+          tabBarItemStyle: {
+            height: 72,
+            justifyContent: "center",
+            alignItems: "center",
+            marginTop: 15,
+            paddingTop: 0,
+          },
 
-          switch (route.name) {
-            case 'Menu':
-              iconName = focused
-                ? 'restaurant'
-                : 'restaurant-outline';
-              break;
-
-            case 'Lista':
-              iconName = focused
-                ? 'cart'
-                : 'cart-outline';
-              break;
-
-            case 'Almacen':
-              IconComponent = MaterialCommunityIcons;
-              iconName = focused
-                ? 'fridge'
-                : 'fridge-outline';
-              iconSize = 26;
-              break;
-
-            case 'Configuracion':
-              iconName = focused
-                ? 'settings'
-                : 'settings-outline';
-              break;
-          }
-
-          return (
-            <TabBarIcon
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
               focused={focused}
-              name={iconName}
-              size={iconSize}
-              IconComponent={IconComponent}
+              name={focused ? cfg.icon[0] : cfg.icon[1]}
+              size={cfg.size}
+              IconComponent={cfg.Comp}
             />
-          );
-        },
-      })}
+          ),
+        };
+      }}
     >
       <Tab.Screen name="Menu" component={Menu} />
       <Tab.Screen name="Lista" component={Lista} />
@@ -181,24 +166,25 @@ export default function Tabs() {
   );
 }
 
-/* 🎨 Estilos (los tuyos) */
-const styles = {
-  iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
+const styles = StyleSheet.create({
+  iconWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
   },
-
-  iconBackground: {
-    width: Platform.OS === 'ios' ? 44 : 40,
-    height: Platform.OS === 'ios' ? 44 : 40,
-    borderRadius: Platform.OS === 'ios' ? 22 : 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  iconBg: {
+    width: 42,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
   },
-
-  iconBackgroundFocused: {
-    backgroundColor:
-      Platform.OS === 'ios' ? '#007AFF15' : '#007AFF10',
+  iconBgActive: {
+    backgroundColor: ACCENT,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.55,
+    shadowRadius: 8,
+    elevation: 8,
   },
-};
+});
