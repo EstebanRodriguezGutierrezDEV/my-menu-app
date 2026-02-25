@@ -64,17 +64,23 @@ Sigue estos pasos para poner en marcha el proyecto en tu entorno local:
    npx expo install @react-navigation/bottom-tabs
    ```
 
+   _Librerías fundamentales para gestionar el flujo entre pantallas y el menú de navegación inferior._
+
    **Base de Datos y Autenticación:**
 
    ```bash
    npx expo install @supabase/supabase-js
    ```
 
+   _Cliente oficial para conectar la app con Supabase (base de datos y autenticación de usuarios)._
+
    **Notificaciones:**
 
    ```bash
    npx expo install expo-notifications
    ```
+
+   _Permite programar alertas locales para avisarte cuando tus alimentos estén próximos a caducar._
 
    **Impresión y PDF:**
 
@@ -83,6 +89,8 @@ Sigue estos pasos para poner en marcha el proyecto en tu entorno local:
    npx expo install expo-sharing
    ```
 
+   _Utilidades para transformar tu lista de la compra en un documento PDF profesional._
+
    **Utilidades y UI:**
 
    ```bash
@@ -90,6 +98,8 @@ Sigue estos pasos para poner en marcha el proyecto en tu entorno local:
    npx expo install react-native-screens
    npx expo install @expo/vector-icons
    ```
+
+   _Componentes críticos para el rendimiento visual, iconos y adaptabilidad del diseño._
 
 3. **Configurar Supabase**
    Crea un archivo de configuración en `app/lib/supabase.js` (o variables de entorno) con tus credenciales.
