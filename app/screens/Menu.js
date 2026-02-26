@@ -14,96 +14,138 @@ import {
 } from "react-native";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { recetasService } from "../lib/services/recetasService";
+import { listaCompraService } from "../lib/services/listaCompraService";
+import { alimentoService } from "../lib/services/alimentoService";
+import { theme } from "../styles/theme";
+import { globalStyles } from "../styles/globalStyles";
+import TarjetaReceta from "../components/TarjetaReceta";
 
 const { width } = Dimensions.get("window");
 
 // Colores por dificultad
 const DIFF_CONFIG = {
-  facil: { label: "Fácil", color: "#2ECC71", bg: "rgba(46,204,113,0.18)" },
-  medio: { label: "Medio", color: "#F39C12", bg: "rgba(243,156,18,0.18)" },
-  dificil: { label: "Difícil", color: "#E74C3C", bg: "rgba(231,76,60,0.18)" },
+  facil: {
+    label: "Fácil",
+    color: theme.colors.success,
+    bg: "rgba(46,204,113,0.18)",
+  },
+  medio: {
+    label: "Medio",
+    color: theme.colors.warning,
+    bg: "rgba(243,156,18,0.18)",
+  },
+  dificil: {
+    label: "Difícil",
+    color: theme.colors.danger,
+    bg: "rgba(231,76,60,0.18)",
+  },
 };
 
 // Emojis de dificultad
 const DIFF_ICONS = { facil: "🟢", medio: "🟡", dificil: "🔴" };
 
 export default function Menu() {
-  const [recipes, setRecipes] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("Todos");
-  const [loading, setLoading] = useState(true);
-  const [searchFocused, setSearchFocused] = useState(false);
+  const [recetas, setRecetas] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [dificultadSeleccionada, setDificultadSeleccionada] = useState("Todos");
+  const [cargando, setCargando] = useState(true);
+  const [focoBusqueda, setFocoBusqueda] = useState(false);
 
-  const loadRecipes = async () => {
-    const { data, error } = await supabase
-      .from("recetas")
-      .select("*")
-      .order("nombre");
+  const cargarRecetas = async () => {
+    // La unión de videos y recetas se hace dentro del servicio
+    const { recetas: recetasMapeadas, error } =
+      await recetasService.getAllRecipes();
+
     if (error) {
       console.error("Error cargando recetas:", error);
       return;
     }
 
-    // Intentamos cargar los videos asociados si están en una tabla separada
-    const { data: videosData } = await supabase.from("videos").select("*");
-
-    // Unimos los videos con las recetas (asumiendo que hay un campo receta_id o id_receta)
-    const recipesWithVideos = data.map((recipe) => {
-      const video = videosData?.find(
-        (v) => v.receta_id === recipe.id || v.id_receta === recipe.id,
-      );
-      return {
-        ...recipe,
-        youtube_url: video?.url || video?.youtube_url || recipe.youtube_url,
-      };
-    });
-
-    setRecipes(recipesWithVideos);
-    setLoading(false);
+    setRecetas(recetasMapeadas || []);
+    setCargando(false);
   };
 
   useEffect(() => {
-    loadRecipes();
+    cargarRecetas();
   }, []);
 
-  const filteredRecipes = recipes.filter((recipe) => {
-    const matchesSearch = recipe.nombre
+  const recetasFiltradas = recetas.filter((receta) => {
+    const coincideBusqueda = receta.nombre
       .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const cfg = DIFF_CONFIG[recipe.nivel];
-    const matchesDifficulty =
-      selectedDifficulty === "Todos" ||
-      (cfg && cfg.label === selectedDifficulty);
-    return matchesSearch && matchesDifficulty;
+      .includes(busqueda.toLowerCase());
+    const cfg = DIFF_CONFIG[receta.nivel];
+    const coincideDificultad =
+      dificultadSeleccionada === "Todos" ||
+      (cfg && cfg.label === dificultadSeleccionada);
+    return coincideBusqueda && coincideDificultad;
   });
 
-  const addToShoppingList = async (ingredients, recipeTitle) => {
+  const agregarAListaCompra = async (ingredientes, tituloReceta) => {
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
       if (!user) {
         Alert.alert("Error", "Debes iniciar sesión");
         return;
       }
 
-      const itemsToAdd = ingredients
+      // 1. Obtener inventario del usuario y limpiarlo
+      const { data: alimentosUsuario, error: errorAlimentos } =
+        await alimentoService.getAllUserFoods(user.id);
+      if (errorAlimentos) throw errorAlimentos;
+
+      const ingredientesPropios = (alimentosUsuario || []).map((f) =>
+        f.nombre.toLowerCase().trim(),
+      );
+      const arrayIngredientesReceta = ingredientes
         .split(",")
         .map((i) => i.trim())
         .filter(Boolean);
-      const inserts = itemsToAdd.map((name) => ({
-        user_id: user.id,
-        name,
-        is_checked: false,
-      }));
 
-      const { error } = await supabase.from("lista_compra").insert(inserts);
+      // 2. Algoritmo Filtro Inteligente (Solo añadir lo que nos falte)
+      const elementosAAgregar = arrayIngredientesReceta.filter((ing) => {
+        const ingBruto = ing.toLowerCase();
+        const coincide = ingredientesPropios.some((propio) => {
+          return propio.length > 2 && ingBruto.includes(propio);
+        });
+        return !coincide; // Solo nos quedamos con los que NO tenemos
+      });
+
+      const cantidadYaObtenida =
+        arrayIngredientesReceta.length - elementosAAgregar.length;
+
+      // 3. Evaluar resultados
+      if (elementosAAgregar.length === 0) {
+        Alert.alert(
+          "¡Todo listo! 🥳",
+          `Ya tienes todos los ingredientes de "${tituloReceta}" en tu despensa.`,
+        );
+        return;
+      }
+
+      // 4. Inserción final de la lista limpia
+      const { error, count } = await listaCompraService.addMultipleItems(
+        user.id,
+        elementosAAgregar.join(","),
+      );
+
       if (error) throw error;
 
-      Alert.alert(
-        "¡Añadido! 🛒",
-        `${itemsToAdd.length} ingredientes de "${recipeTitle}" en tu lista.`,
-      );
+      // 5. Feedback adaptativo
+      if (cantidadYaObtenida > 0) {
+        Alert.alert(
+          "¡Añadido Inteligente! 🛒🧠",
+          `Añadidos ${count} ingredientes de "${tituloReceta}".\n\n¡Te has ahorrado comprar ${cantidadYaObtenida} que ya tenías en la nevera!`,
+        );
+      } else {
+        Alert.alert(
+          "¡Añadido! 🛒",
+          `${count} ingredientes de "${tituloReceta}" en tu lista.`,
+        );
+      }
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "No se pudieron añadir los ingredientes");
@@ -111,8 +153,11 @@ export default function Menu() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A1628" />
+    <View style={globalStyles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={theme.colors.background}
+      />
 
       {/* ── HEADER ── */}
       <View style={styles.header}>
@@ -121,7 +166,7 @@ export default function Menu() {
           <Text style={styles.headerTitle}>Nuestra Carta 🍽️</Text>
         </View>
         <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeText}>{filteredRecipes.length}</Text>
+          <Text style={styles.headerBadgeText}>{recetasFiltradas.length}</Text>
         </View>
       </View>
 
@@ -131,20 +176,20 @@ export default function Menu() {
       >
         {/* ── BUSCADOR ── */}
         <View
-          style={[styles.searchWrapper, searchFocused && styles.searchFocused]}
+          style={[styles.searchWrapper, focoBusqueda && styles.searchFocused]}
         >
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar receta..."
             placeholderTextColor="rgba(255,255,255,0.35)"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
+            value={busqueda}
+            onChangeText={setBusqueda}
+            onFocus={() => setFocoBusqueda(true)}
+            onBlur={() => setFocoBusqueda(false)}
           />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery("")}>
+          {busqueda.length > 0 && (
+            <Pressable onPress={() => setBusqueda("")}>
               <Text style={styles.clearIcon}>✕</Text>
             </Pressable>
           )}
@@ -158,13 +203,13 @@ export default function Menu() {
           contentContainerStyle={styles.filtersContent}
         >
           {["Todos", "Fácil", "Medio", "Difícil"].map((diff) => {
-            const isActive = selectedDifficulty === diff;
+            const isActive = dificultadSeleccionada === diff;
             const colorMap = {
-              Fácil: "#2ECC71",
-              Medio: "#F39C12",
-              Difícil: "#E74C3C",
+              Fácil: theme.colors.success,
+              Medio: theme.colors.warning,
+              Difícil: theme.colors.danger,
             };
-            const activeColor = colorMap[diff] || "#4DA6FF";
+            const activeColor = colorMap[diff] || theme.colors.primary;
 
             return (
               <Pressable
@@ -176,7 +221,7 @@ export default function Menu() {
                     borderColor: activeColor,
                   },
                 ]}
-                onPress={() => setSelectedDifficulty(diff)}
+                onPress={() => setDificultadSeleccionada(diff)}
               >
                 <Text
                   style={[styles.chipText, isActive && styles.chipTextActive]}
@@ -189,86 +234,34 @@ export default function Menu() {
         </ScrollView>
 
         {/* ── ESTADO CARGA ── */}
-        {loading && (
+        {cargando && (
           <Text style={styles.emptyText}>Cargando recetas... 👨‍🍳</Text>
         )}
 
         {/* ── CARDS ── */}
-        {filteredRecipes.map((recipe) => {
-          const cfg = DIFF_CONFIG[recipe.nivel] ?? {
+        {recetasFiltradas.map((receta) => {
+          const cfg = DIFF_CONFIG[receta.nivel] ?? {
             label: "—",
             color: "#999",
             bg: "#eee",
           };
-          const icon = DIFF_ICONS[recipe.nivel] ?? "⚪";
+          const icon = DIFF_ICONS[receta.nivel] ?? "⚪";
 
           return (
-            <View key={recipe.id} style={styles.card}>
-              {/* Imagen con overlay */}
-              <View style={styles.imageContainer}>
-                <Image
-                  source={{ uri: recipe.imagen_url }}
-                  style={styles.cardImage}
-                />
-              </View>
-
-              {/* Contenido */}
-              <View style={styles.cardBody}>
-                <View style={styles.titleRow}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>
-                    {recipe.nombre}
-                  </Text>
-                  <View style={[styles.diffBadge, { backgroundColor: cfg.bg }]}>
-                    <Text style={[styles.diffBadgeText, { color: cfg.color }]}>
-                      {icon} {cfg.label}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Ingredientes */}
-                <View style={styles.ingredientsRow}>
-                  <Text style={styles.ingredientsLabel}>🥘 Ingredientes</Text>
-                </View>
-                <Text style={styles.ingredientsText} numberOfLines={3}>
-                  {recipe.ingredientes}
-                </Text>
-
-                {/* Separador */}
-                <View style={styles.cardDivider} />
-
-                {/* Botón añadir */}
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.addButton,
-                    pressed && styles.addButtonPressed,
-                  ]}
-                  onPress={() =>
-                    addToShoppingList(recipe.ingredientes, recipe.nombre)
-                  }
-                >
-                  <Text style={styles.addButtonIcon}></Text>
-                  <Text style={styles.addButtonText}>Añadir a la lista</Text>
-                </Pressable>
-
-                {recipe.youtube_url && (
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.youtubeButton,
-                      pressed && styles.addButtonPressed,
-                    ]}
-                    onPress={() => Linking.openURL(recipe.youtube_url)}
-                  >
-                    <Text style={styles.youtubeButtonIcon}></Text>
-                    <Text style={styles.youtubeButtonText}>Ver en YouTube</Text>
-                  </Pressable>
-                )}
-              </View>
-            </View>
+            <TarjetaReceta
+              key={receta.id}
+              receta={receta}
+              configDificultad={cfg}
+              iconoDificultad={icon}
+              alAgregarALista={() =>
+                agregarAListaCompra(receta.ingredientes, receta.nombre)
+              }
+            />
           );
         })}
 
         {/* ── SIN RESULTADOS ── */}
-        {filteredRecipes.length === 0 && !loading && (
+        {recetasFiltradas.length === 0 && !cargando && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>🔎</Text>
             <Text style={styles.emptyTitle}>Sin resultados</Text>
@@ -283,10 +276,8 @@ export default function Menu() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0A1628" },
-
   header: {
-    backgroundColor: "#0A1628",
+    backgroundColor: theme.colors.background,
     paddingTop: 54,
     paddingBottom: 16,
     paddingHorizontal: 24,
@@ -294,15 +285,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-end",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.07)",
+    borderBottomColor: theme.colors.borderLight,
   },
   headerEyebrow: {
-    color: "#4DA6FF",
+    color: theme.colors.primary,
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 3,
   },
-  headerTitle: { color: "#fff", fontSize: 26, fontWeight: "900" },
+  headerTitle: { color: theme.colors.text, fontSize: 26, fontWeight: "900" },
   headerBadge: {
     backgroundColor: "rgba(77,166,255,0.2)",
     borderRadius: 12,
@@ -348,89 +339,6 @@ const styles = StyleSheet.create({
   },
   chipText: { color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: "700" },
   chipTextActive: { color: "#fff" },
-
-  card: {
-    backgroundColor: "#111D30",
-    borderRadius: 20,
-    marginBottom: 16,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 7,
-  },
-  imageContainer: { width: "100%", height: 180 },
-  cardImage: { width: "100%", height: "100%" },
-  cardBody: { padding: 16 },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-    gap: 10,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: "#fff",
-    flex: 1,
-  },
-  diffBadge: {
-    borderRadius: 8,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-  },
-  diffBadgeText: { fontSize: 11, fontWeight: "800" },
-  ingredientsRow: { marginBottom: 6 },
-  ingredientsLabel: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  ingredientsText: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 14,
-  },
-  cardDivider: {
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.07)",
-    marginBottom: 14,
-  },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#0078D4",
-    borderRadius: 12,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  addButtonPressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
-  addButtonIcon: { fontSize: 16 },
-  addButtonText: { color: "#fff", fontWeight: "800", fontSize: 15 },
-
-  youtubeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FF0000",
-    borderRadius: 12,
-    paddingVertical: 12,
-    gap: 8,
-    marginTop: 8,
-    shadowColor: "#FF0000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  youtubeButtonIcon: { fontSize: 16 },
-  youtubeButtonText: { color: "#fff", fontWeight: "800", fontSize: 15 },
 
   emptyState: { alignItems: "center", paddingTop: 50, gap: 10 },
   emptyEmoji: { fontSize: 52, marginBottom: 8 },

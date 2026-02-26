@@ -103,7 +103,7 @@ const Paginator = ({ data, scrollX, currentIndex }) => (
 );
 
 // ── Componente principal ──────────────────────────────────────
-export default function Onboarding() {
+export default function Bienvenida() {
   const navigation = useNavigation();
   const [showWelcome, setShowWelcome] = useState(true);
 
@@ -163,7 +163,7 @@ export default function Onboarding() {
 
   const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  const handleFinish = () => navigation.replace("Login");
+  const handleFinish = () => navigation.replace("Acceso");
 
   const handleNext = () =>
     slidesRef.current?.scrollToIndex({ index: currentIndex + 1 });

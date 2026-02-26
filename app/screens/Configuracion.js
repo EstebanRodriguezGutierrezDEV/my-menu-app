@@ -10,18 +10,9 @@ import {
 } from "react-native";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-
-const COLORS = {
-  bg: "#0A1628",
-  surface: "#111D30",
-  accent: "#4DA6FF",
-  accentDark: "#0078D4",
-  success: "#2ECC71",
-  danger: "#E74C3C",
-  textPrimary: "#FFFFFF",
-  textSub: "rgba(255,255,255,0.45)",
-  border: "rgba(255,255,255,0.07)",
-};
+import { theme } from "../styles/theme";
+import { globalStyles } from "../styles/globalStyles";
+import FilaAjuste from "../components/FilaAjuste";
 
 export default function Configuracion({ navigation }) {
   const [nombre, setNombre] = useState("");
@@ -153,7 +144,7 @@ export default function Configuracion({ navigation }) {
           onPress: async () => {
             try {
               await supabase.auth.signOut();
-              navigation.navigate("Login");
+              // El listener global en App.js cambiará la ruta automáticamente.
             } catch (e) {
               Alert.alert("Error", "No se pudo cerrar sesión");
             }
@@ -165,30 +156,12 @@ export default function Configuracion({ navigation }) {
 
   const avatarLetter = nombre ? nombre.charAt(0).toUpperCase() : "U";
 
-  /* ── Componente reutilizable: fila de campo ── */
-  const FieldRow = ({ label, value, icon, showForm, onToggle, children }) => (
-    <View style={styles.fieldCard}>
-      <Pressable style={styles.fieldRow} onPress={onToggle}>
-        <View style={styles.fieldIconBadge}>
-          <Text style={styles.fieldIcon}>{icon}</Text>
-        </View>
-        <View style={styles.fieldInfo}>
-          <Text style={styles.fieldLabel}>{label}</Text>
-          <Text style={styles.fieldValue} numberOfLines={1}>
-            {value}
-          </Text>
-        </View>
-        <View style={[styles.chevron, showForm && styles.chevronOpen]}>
-          <Text style={styles.chevronText}>›</Text>
-        </View>
-      </Pressable>
-      {showForm && <View style={styles.editForm}>{children}</View>}
-    </View>
-  );
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A1628" />
+    <View style={globalStyles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={theme.colors.background}
+      />
 
       {/* ── HEADER ── */}
       <View style={styles.header}>
@@ -219,7 +192,7 @@ export default function Configuracion({ navigation }) {
         {/* ── SECCIÓN: INFORMACIÓN PERSONAL ── */}
         <Text style={styles.sectionLabel}>👤 INFORMACIÓN PERSONAL</Text>
 
-        <FieldRow
+        <FilaAjuste
           label="Nombre de usuario"
           value={nombre || "—"}
           icon="✏️"
@@ -259,9 +232,9 @@ export default function Configuracion({ navigation }) {
               </Text>
             </Pressable>
           </View>
-        </FieldRow>
+        </FilaAjuste>
 
-        <FieldRow
+        <FilaAjuste
           label="Correo electrónico"
           value={email || "—"}
           icon="📧"
@@ -303,12 +276,12 @@ export default function Configuracion({ navigation }) {
               </Text>
             </Pressable>
           </View>
-        </FieldRow>
+        </FilaAjuste>
 
         {/* ── SECCIÓN: SEGURIDAD ── */}
         <Text style={styles.sectionLabel}>🔒 SEGURIDAD</Text>
 
-        <FieldRow
+        <FilaAjuste
           label="Contraseña"
           value="••••••••"
           icon="🔑"
@@ -352,7 +325,7 @@ export default function Configuracion({ navigation }) {
               </Text>
             </Pressable>
           </View>
-        </FieldRow>
+        </FilaAjuste>
 
         {/* ── SECCIÓN: SESIÓN ── */}
         <Text style={styles.sectionLabel}>🚪 SESIÓN</Text>
@@ -373,51 +346,40 @@ export default function Configuracion({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-
   header: {
-    backgroundColor: COLORS.bg,
+    backgroundColor: theme.colors.background,
     paddingTop: 54,
     paddingBottom: 20,
     paddingHorizontal: 24,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: theme.colors.border,
   },
   headerEyebrow: {
-    color: COLORS.accent,
+    color: theme.colors.primary,
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 3,
     marginBottom: 4,
   },
-  headerTitle: { color: COLORS.textPrimary, fontSize: 26, fontWeight: "900" },
+  headerTitle: { color: theme.colors.text, fontSize: 26, fontWeight: "900" },
 
   content: { padding: 20, paddingBottom: 120 },
 
   profileCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    padding: 28,
+    ...globalStyles.card,
     alignItems: "center",
     marginBottom: 28,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-    elevation: 10,
   },
   avatarRing: {
     width: 92,
     height: 92,
     borderRadius: 46,
     borderWidth: 2,
-    borderColor: COLORS.accent,
+    borderColor: theme.colors.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 14,
-    shadowColor: COLORS.accent,
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -427,18 +389,22 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.accentDark,
+    backgroundColor: theme.colors.primaryDark,
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: { fontSize: 34, fontWeight: "900", color: COLORS.textPrimary },
+  avatarText: { fontSize: 34, fontWeight: "900", color: theme.colors.text },
   profileName: {
     fontSize: 22,
     fontWeight: "900",
-    color: COLORS.textPrimary,
+    color: "#fff",
     marginBottom: 4,
   },
-  profileEmail: { fontSize: 14, color: COLORS.textSub, marginBottom: 14 },
+  profileEmail: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+    marginBottom: 14,
+  },
   profileBadge: {
     backgroundColor: "rgba(46,204,113,0.15)",
     borderRadius: 10,
@@ -447,10 +413,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(46,204,113,0.3)",
   },
-  profileBadgeText: { color: COLORS.success, fontSize: 12, fontWeight: "700" },
+  profileBadgeText: {
+    color: theme.colors.success,
+    fontSize: 12,
+    fontWeight: "700",
+  },
 
   sectionLabel: {
-    color: COLORS.accent,
+    color: theme.colors.primary,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2,
@@ -458,60 +428,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  fieldCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  fieldRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    gap: 14,
-  },
-  fieldIconBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "rgba(77,166,255,0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  fieldIcon: { fontSize: 19 },
-  fieldInfo: { flex: 1 },
-  fieldLabel: {
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    marginBottom: 3,
-  },
-  fieldValue: { color: COLORS.textPrimary, fontSize: 15, fontWeight: "600" },
-  chevron: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  chevronOpen: { backgroundColor: "rgba(77,166,255,0.15)" },
-  chevronText: { color: "rgba(255,255,255,0.4)", fontSize: 20, lineHeight: 24 },
-
-  editForm: {
-    padding: 16,
-    paddingTop: 0,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
-  },
   inputWrapper: {
     backgroundColor: "rgba(255,255,255,0.07)",
     borderRadius: 12,
@@ -524,10 +440,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   inputFocused: {
-    borderColor: COLORS.accent,
+    borderColor: theme.colors.primary,
     backgroundColor: "rgba(77,166,255,0.08)",
   },
-  input: { color: COLORS.textPrimary, fontSize: 15, height: "100%" },
+  input: { color: "#fff", fontSize: 15, height: "100%" },
 
   btnRow: { flexDirection: "row", gap: 10 },
   cancelBtn: {
@@ -549,15 +465,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
-    backgroundColor: COLORS.accentDark,
-    shadowColor: COLORS.accentDark,
+    backgroundColor: theme.colors.primaryDark,
+    shadowColor: theme.colors.primaryDark,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 6,
   },
   saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { color: COLORS.textPrimary, fontWeight: "800", fontSize: 14 },
+  saveBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
 
   logoutBtn: {
     flexDirection: "row",
@@ -574,7 +490,7 @@ const styles = StyleSheet.create({
   logoutBtnPressed: { opacity: 0.75, transform: [{ scale: 0.98 }] },
   logoutIcon: { fontSize: 18 },
   logoutText: {
-    color: COLORS.danger,
+    color: theme.colors.danger,
     fontWeight: "800",
     fontSize: 16,
     letterSpacing: 0.3,

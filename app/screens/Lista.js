@@ -12,16 +12,25 @@ import {
 } from "react-native";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
 import { supabase } from "../lib/supabase";
+import { listaCompraService } from "../lib/services/listaCompraService";
+import { alimentoService } from "../lib/services/alimentoService";
+import { generateShoppingListPDF } from "../lib/utils/pdfGenerator";
+import { theme } from "../styles/theme";
+import { globalStyles } from "../styles/globalStyles";
+import BotonPrincipal from "../components/BotonPrincipal";
+import ModalMoverAlmacen from "../components/ModalMoverAlmacen";
 
 const { width } = Dimensions.get("window");
 
 export default function Lista({ navigation }) {
-  const [text, setText] = useState("");
-  const [items, setItems] = useState([]);
-  const [inputFocused, setInputFocused] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [articulos, setArticulos] = useState([]);
+  const [focoInput, setFocoInput] = useState(false);
+
+  // Estados para Mover a Arcón
+  const [modalMoverVisible, setModalMoverVisible] = useState(false);
+  const [articuloAMover, setArticuloAMover] = useState(null);
 
   // Animación de entrada
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -45,52 +54,44 @@ export default function Lista({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      fetchItems();
+      cargarArticulos();
     }, []),
   );
 
-  const fetchItems = async () => {
+  const cargarArticulos = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from("lista_compra")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true });
+    const { data, error } = await listaCompraService.getItems(user.id);
 
     if (error) {
       Alert.alert("Error cargando lista", error.message);
     } else {
-      setItems(data);
+      setArticulos(data || []);
     }
   };
 
-  const addItem = async () => {
-    if (text.trim() === "") return;
+  const agregarArticulo = async () => {
+    if (texto.trim() === "") return;
 
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase.from("lista_compra").insert({
-      user_id: user.id,
-      name: text.trim(),
-      is_checked: false,
-    });
+    const { error } = await listaCompraService.addItem(user.id, texto.trim());
 
     if (error) {
       Alert.alert("Error", "No se pudo añadir el alimento");
     } else {
-      setText("");
-      fetchItems();
+      setTexto("");
+      cargarArticulos();
     }
   };
 
-  const deleteItem = async (id) => {
+  const eliminarArticulo = async (id) => {
     Alert.alert(
       "Eliminar producto",
       "¿Estás seguro de que quieres eliminar este producto?",
@@ -108,16 +109,12 @@ export default function Lista({ navigation }) {
               return;
             }
 
-            const { error, count } = await supabase
-              .from("lista_compra")
-              .delete({ count: "exact" })
-              .eq("id", id)
-              .eq("user_id", user.id);
+            const { error } = await listaCompraService.deleteItem(id, user.id);
 
             if (error) {
               Alert.alert("Error", "No se pudo eliminar: " + error.message);
             } else {
-              fetchItems();
+              cargarArticulos();
             }
           },
         },
@@ -125,175 +122,105 @@ export default function Lista({ navigation }) {
     );
   };
 
-  const generatePDF = async () => {
-    if (items.length === 0) {
-      Alert.alert("Lista vacía", "No hay elementos para generar el PDF.");
-      return;
-    }
+  const eliminarTodosLosArticulos = async () => {
+    Alert.alert(
+      "Vaciar lista",
+      "¿Estás completamente seguro de que quieres eliminar todos los productos de tu lista de la compra? Esta acción no se puede deshacer.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sí, vaciar",
+          style: "destructive",
+          onPress: async () => {
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            if (!user) {
+              Alert.alert("Error", "No estás autenticado");
+              return;
+            }
 
-    const fecha = new Date().toLocaleDateString("es-ES", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+            const { error } = await listaCompraService.deleteAllItems(user.id);
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="es">
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body {
-              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-              background: #F0F4F8;
-              padding: 36px 32px;
-              color: #1a1a2e;
+            if (error) {
+              Alert.alert(
+                "Error",
+                "No se pudo vaciar la lista: " + error.message,
+              );
+            } else {
+              cargarArticulos();
             }
-            .header {
-              background: linear-gradient(135deg, #0057A8 0%, #0078D4 55%, #4DA6FF 100%);
-              border-radius: 20px;
-              padding: 28px 32px;
-              margin-bottom: 28px;
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-            }
-            .header-left { display: flex; align-items: center; gap: 16px; }
-            .header-icon { font-size: 44px; line-height: 1; }
-            .header-text h1 { font-size: 28px; font-weight: 900; color: #fff; margin-bottom: 4px; letter-spacing: -0.3px; }
-            .header-text p { font-size: 13px; color: rgba(255,255,255,0.72); text-transform: capitalize; }
-            .header-badge {
-              background: rgba(255,255,255,0.18);
-              border: 2px solid rgba(255,255,255,0.3);
-              border-radius: 14px;
-              padding: 10px 18px;
-              text-align: center;
-            }
-            .badge-num { font-size: 26px; font-weight: 900; color: #fff; line-height: 1; }
-            .badge-label { font-size: 10px; color: rgba(255,255,255,0.72); font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px; }
-            .intro {
-              background: #fff;
-              border-radius: 12px;
-              padding: 14px 18px;
-              margin-bottom: 22px;
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              border-left: 4px solid #0078D4;
-            }
-            .intro p { font-size: 13px; color: #555; line-height: 1.5; }
-            .intro strong { color: #0078D4; }
-            .table {
-              background: #fff;
-              border-radius: 16px;
-              overflow: hidden;
-              box-shadow: 0 2px 16px rgba(0,0,0,0.07);
-              margin-bottom: 28px;
-            }
-            .table-head {
-              background: #0078D4;
-              display: grid;
-              grid-template-columns: 44px 1fr 72px;
-              padding: 12px 18px;
-              gap: 12px;
-            }
-            .table-head span { font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.82); text-transform: uppercase; letter-spacing: 1px; }
-            .table-head .center { text-align: center; }
-            .row {
-              display: grid;
-              grid-template-columns: 44px 1fr 72px;
-              padding: 13px 18px;
-              gap: 12px;
-              align-items: center;
-              border-bottom: 1px solid #f0f0f0;
-            }
-            .row:last-child { border-bottom: none; }
-            .row.alt { background: #F5F9FF; }
-            .row-num {
-              width: 26px; height: 26px;
-              background: #EBF4FF;
-              border-radius: 7px;
-              display: flex; align-items: center; justify-content: center;
-              font-weight: 800; font-size: 12px; color: #0078D4;
-            }
-            .row-name { font-size: 15px; font-weight: 600; color: #1a1a2e; }
-            .cb-wrap { display: flex; align-items: center; justify-content: center; }
-            .cb { width: 22px; height: 22px; border: 2px solid #0078D4; border-radius: 6px; background: #fff; }
-            .footer {
-              text-align: center;
-              padding-top: 20px;
-              border-top: 1px solid #dde4ef;
-            }
-            .footer-brand { font-size: 17px; font-weight: 900; color: #0078D4; letter-spacing: 1px; }
-            .footer-sub { font-size: 11px; color: #aaa; margin-top: 3px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="header-left">
-              <div class="header-icon">🛒</div>
-              <div class="header-text">
-                <h1>Lista de la Compra</h1>
-                <p>${fecha}</p>
-              </div>
-            </div>
-            <div class="header-badge">
-              <div class="badge-num">${items.length}</div>
-              <div class="badge-label">Productos</div>
-            </div>
-          </div>
+          },
+        },
+      ],
+    );
+  };
 
-          <div class="intro">
-            <span style="font-size:20px">💡</span>
-            <p>Marca cada producto conforme lo vayas añadiendo al carrito. Generado con <strong>MyMenú</strong>.</p>
-          </div>
+  const abrirModalMover = (item) => {
+    setArticuloAMover(item);
+    setModalMoverVisible(true);
+  };
 
-          <div class="table">
-            <div class="table-head">
-              <span>#</span>
-              <span>Producto</span>
-              <span class="center">Hecho</span>
-            </div>
-            ${items
-              .map(
-                (item, i) => `
-              <div class="row ${i % 2 !== 0 ? "alt" : ""}">
-                <div class="row-num">${i + 1}</div>
-                <div class="row-name">${item.name}</div>
-                <div class="cb-wrap"><div class="cb"></div></div>
-              </div>
-            `,
-              )
-              .join("")}
-          </div>
-
-          <div class="footer">
-            <div class="footer-brand">𝓜𝔂𝓜𝓮𝓷𝓾</div>
-            <div class="footer-sub">Tu asistente de cocina inteligente</div>
-          </div>
-        </body>
-      </html>
-    `;
+  const confirmarMovimiento = async ({ cantidad, caducidad, almacen }) => {
+    if (!articuloAMover) return;
 
     try {
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
-      await Sharing.shareAsync(uri, {
-        UTI: ".pdf",
-        mimeType: "application/pdf",
-      });
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert("Error", "Debes iniciar sesión");
+        return;
+      }
+
+      // 1. Guardar en el almacén elegido
+      const payload = {
+        user_id: user.id,
+        nombre: articuloAMover.name,
+        cantidad: cantidad,
+        fecha_caducidad: caducidad,
+        almacenamiento: almacen,
+        notificado: false,
+      };
+
+      const { error: insertError } = await alimentoService.addFood(payload);
+      if (insertError) throw insertError;
+
+      // 2. Borrar de la lista
+      const { error: deleteError } = await listaCompraService.deleteItem(
+        articuloAMover.id,
+        user.id,
+      );
+      if (deleteError) throw deleteError;
+
+      // Cerrar y actualizar
+      setModalMoverVisible(false);
+      setArticuloAMover(null);
+      cargarArticulos();
+
+      const storageName = almacen.charAt(0).toUpperCase() + almacen.slice(1);
+      Alert.alert(
+        "¡Movido! 📦",
+        `"${articuloAMover.name}" se guardó en tu ${storageName}.`,
+      );
     } catch (error) {
-      Alert.alert("Error", "No se pudo generar o compartir el PDF");
+      console.error(error);
+      Alert.alert("Error", "No se pudo mover el producto.");
     }
   };
 
-  const checkedCount = items.filter((i) => i.is_checked).length;
+  const generarPDF = async () => {
+    await generateShoppingListPDF(articulos);
+  };
+
+  const cantidadMarcados = articulos.filter((i) => i.is_checked).length;
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A1628" />
+    <View style={globalStyles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={theme.colors.background}
+      />
 
       {/* ── HEADER ── */}
       <View style={styles.header}>
@@ -301,9 +228,9 @@ export default function Lista({ navigation }) {
           <Text style={styles.headerEyebrow}>COMPRA</Text>
           <Text style={styles.headerTitle}>Mi Lista 🛒</Text>
         </View>
-        {items.length > 0 && (
+        {articulos.length > 0 && (
           <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeText}>{items.length}</Text>
+            <Text style={styles.headerBadgeText}>{articulos.length}</Text>
           </View>
         )}
       </View>
@@ -318,7 +245,7 @@ export default function Lista({ navigation }) {
           <View
             style={[
               styles.inputWrapper,
-              inputFocused && styles.inputWrapperFocused,
+              focoInput && styles.inputWrapperFocused,
             ]}
           >
             <Text style={styles.inputEmoji}>📝</Text>
@@ -326,15 +253,15 @@ export default function Lista({ navigation }) {
               style={styles.input}
               placeholder="Añadir alimento..."
               placeholderTextColor="rgba(255,255,255,0.35)"
-              value={text}
-              onChangeText={setText}
-              onSubmitEditing={addItem}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setInputFocused(false)}
+              value={texto}
+              onChangeText={setTexto}
+              onSubmitEditing={agregarArticulo}
+              onFocus={() => setFocoInput(true)}
+              onBlur={() => setFocoInput(false)}
               returnKeyType="done"
             />
-            {text.trim().length > 0 && (
-              <Pressable style={styles.addBtn} onPress={addItem}>
+            {texto.trim().length > 0 && (
+              <Pressable style={styles.addBtn} onPress={agregarArticulo}>
                 <Text style={styles.addBtnText}>+</Text>
               </Pressable>
             )}
@@ -342,17 +269,18 @@ export default function Lista({ navigation }) {
         </View>
 
         {/* ── RESUMEN ── */}
-        {items.length > 0 && (
+        {articulos.length > 0 && (
           <View style={styles.summaryRow}>
             <Text style={styles.summaryText}>
-              {items.length} producto{items.length !== 1 ? "s" : ""} en tu lista
+              {articulos.length} producto{articulos.length !== 1 ? "s" : ""} en
+              tu lista
             </Text>
           </View>
         )}
 
         {/* ── ITEMS ── */}
         <View style={styles.itemsContainer}>
-          {items.map((item, index) => (
+          {articulos.map((item, index) => (
             <Animated.View key={item.id} style={styles.itemRow}>
               {/* Número de orden */}
               <View style={styles.itemNumber}>
@@ -360,26 +288,45 @@ export default function Lista({ navigation }) {
               </View>
 
               {/* Contenido */}
-              <View style={styles.itemCard}>
+              <View
+                style={[
+                  globalStyles.card,
+                  { flex: 1, padding: 14, marginBottom: 0 },
+                ]}
+              >
                 <Text style={styles.itemText}>{item.name}</Text>
               </View>
 
-              {/* Borrar */}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.deleteBtn,
-                  pressed && styles.deleteBtnPressed,
-                ]}
-                onPress={() => deleteItem(item.id)}
-              >
-                <Text style={styles.deleteIcon}>🗑️</Text>
-              </Pressable>
+              {/* Botones de acción */}
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {/* Mover al arcón */}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.moveBtn,
+                    pressed && styles.deleteBtnPressed,
+                  ]}
+                  onPress={() => abrirModalMover(item)}
+                >
+                  <Text style={styles.deleteIcon}>📦</Text>
+                </Pressable>
+
+                {/* Borrar */}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.deleteBtn,
+                    pressed && styles.deleteBtnPressed,
+                  ]}
+                  onPress={() => eliminarArticulo(item.id)}
+                >
+                  <Text style={styles.deleteIcon}>🗑️</Text>
+                </Pressable>
+              </View>
             </Animated.View>
           ))}
         </View>
 
         {/* ── VACÍO ── */}
-        {items.length === 0 && (
+        {articulos.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>📭</Text>
             <Text style={styles.emptyTitle}>Lista vacía</Text>
@@ -390,28 +337,55 @@ export default function Lista({ navigation }) {
         )}
 
         {/* ── PDF ── */}
-        {items.length > 0 && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.pdfButton,
-              pressed && styles.pdfButtonPressed,
-            ]}
-            onPress={generatePDF}
-          >
-            <Text style={styles.pdfIcon}>📄</Text>
-            <Text style={styles.pdfButtonText}>Generar PDF y Compartir</Text>
-          </Pressable>
+        {articulos.length > 0 && (
+          <View style={{ gap: 12, marginTop: 24 }}>
+            <BotonPrincipal
+              style={styles.pdfButton}
+              label={
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  <Text style={styles.pdfIcon}>📄</Text>
+                  <Text style={styles.pdfButtonText}>
+                    Generar PDF y Compartir
+                  </Text>
+                </View>
+              }
+              onPress={generarPDF}
+            />
+
+            <BotonPrincipal
+              style={styles.deleteAllBtn}
+              label={
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  <Text style={styles.deleteAllIcon}>🗑️</Text>
+                  <Text style={styles.deleteAllText}>
+                    Vaciar lista completa
+                  </Text>
+                </View>
+              }
+              onPress={eliminarTodosLosArticulos}
+            />
+          </View>
         )}
       </Animated.ScrollView>
+
+      {/* ── MODAL MOVER ARCÓN ── */}
+      <ModalMoverAlmacen
+        visible={modalMoverVisible}
+        datosArticulo={articuloAMover}
+        alCerrar={() => setModalMoverVisible(false)}
+        alConfirmar={confirmarMovimiento}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0A1628" },
-
   header: {
-    backgroundColor: "#0A1628",
+    backgroundColor: theme.colors.background,
     paddingTop: 54,
     paddingBottom: 20,
     paddingHorizontal: 24,
@@ -419,16 +393,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-end",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.07)",
+    borderBottomColor: theme.colors.borderLight,
   },
   headerEyebrow: {
-    color: "#4DA6FF",
+    color: theme.colors.primary,
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 3,
     marginBottom: 4,
   },
-  headerTitle: { color: "#fff", fontSize: 26, fontWeight: "900" },
+  headerTitle: { color: theme.colors.text, fontSize: 26, fontWeight: "900" },
   headerBadge: {
     backgroundColor: "rgba(77,166,255,0.2)",
     borderRadius: 12,
@@ -438,7 +412,11 @@ const styles = StyleSheet.create({
     borderColor: "rgba(77,166,255,0.3)",
     alignItems: "center",
   },
-  headerBadgeText: { color: "#4DA6FF", fontWeight: "900", fontSize: 18 },
+  headerBadgeText: {
+    color: theme.colors.primary,
+    fontWeight: "900",
+    fontSize: 18,
+  },
 
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 120 },
 
@@ -471,7 +449,7 @@ const styles = StyleSheet.create({
 
   summaryRow: { marginBottom: 12 },
   summaryText: {
-    color: "rgba(255,255,255,0.45)",
+    color: theme.colors.textSecondary,
     fontSize: 13,
     fontWeight: "600",
   },
@@ -490,16 +468,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  itemNumberText: { color: "#4DA6FF", fontWeight: "800", fontSize: 14 },
-  itemCard: {
-    flex: 1,
-    backgroundColor: "#111D30",
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
+  itemNumberText: {
+    color: theme.colors.primary,
+    fontWeight: "800",
+    fontSize: 14,
   },
-  itemText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  itemText: { color: theme.colors.text, fontSize: 16, fontWeight: "600" },
+  moveBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "rgba(46, 204, 113, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(46, 204, 113, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   deleteBtn: {
     width: 44,
     height: 44,
@@ -515,31 +499,40 @@ const styles = StyleSheet.create({
 
   emptyState: { alignItems: "center", paddingVertical: 50, gap: 10 },
   emptyEmoji: { fontSize: 52, marginBottom: 8 },
-  emptyTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
+  emptyTitle: { fontSize: 20, fontWeight: "800", color: theme.colors.text },
   emptySubtext: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.35)",
+    color: theme.colors.textSecondary,
     textAlign: "center",
     paddingHorizontal: 30,
     lineHeight: 21,
   },
 
   pdfButton: {
-    marginTop: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     backgroundColor: "rgba(77,166,255,0.12)",
-    borderRadius: 16,
-    paddingVertical: 14,
     borderWidth: 1,
     borderColor: "rgba(77,166,255,0.25)",
-    gap: 8,
+    shadowOpacity: 0,
+    elevation: 0,
   },
-  pdfButtonPressed: { opacity: 0.75 },
   pdfIcon: { fontSize: 18 },
   pdfButtonText: {
-    color: "#4DA6FF",
+    color: theme.colors.primary,
+    fontWeight: "800",
+    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+
+  deleteAllBtn: {
+    backgroundColor: "rgba(231,76,60,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(231,76,60,0.25)",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  deleteAllIcon: { fontSize: 18 },
+  deleteAllText: {
+    color: theme.colors.danger,
     fontWeight: "800",
     fontSize: 15,
     letterSpacing: 0.3,
